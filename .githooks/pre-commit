@@ -1,0 +1,19 @@
+#!/bin/bash
+# Pre-commit hook: Prevent direct commits to main branch
+# Bypass with: git commit --no-verify
+
+BRANCH=$(git rev-parse --abbrev-ref HEAD)
+
+if [ "$BRANCH" = "main" ]; then
+    echo ""
+    echo "🛑 Direct commits to 'main' are not allowed."
+    echo ""
+    echo "Please create a feature branch:"
+    echo "  git checkout -b feature/your-feature-name"
+    echo ""
+    echo "To bypass in emergencies: git commit --no-verify"
+    echo ""
+    exit 1
+fi
+
+exit 0

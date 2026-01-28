@@ -1,0 +1,52 @@
+{
+  "drone": {
+    "level": 1,
+    "health": 50,
+    "damage": 10,
+    "attack_speed": 1.0,
+    "move_speed": 150,
+    "vision_range": 200,
+    "harvest_speed": 5,
+    "supply_cost": 1
+  },
+  "hunter": {
+    "level": 2,
+    "base_type": "drone",
+    "health": 40,
+    "damage": 20,
+    "attack_speed": 1.2,
+    "move_speed": 160,
+    "vision_range": 220,
+    "harvest_speed": 4,
+    "supply_cost": 2
+  },
+  "guardian": {
+    "level": 2,
+    "base_type": "drone",
+    "health": 100,
+    "damage": 8,
+    "attack_speed": 0.8,
+    "move_speed": 100,
+    "vision_range": 180,
+    "harvest_speed": 4,
+    "supply_cost": 2
+  },
+  "scout": {
+    "level": 2,
+    "base_type": "drone",
+    "health": 30,
+    "damage": 12,
+    "attack_speed": 1.0,
+    "move_speed": 250,
+    "vision_range": 300,
+    "harvest_speed": 8,
+    "supply_cost": 2
+  },
+  "mother": {
+    "health": 500,
+    "move_speed": 50,
+    "vision_range": 250,
+    "base_supply": 10,
+    "spawn_time": 3.0
+  }
+}

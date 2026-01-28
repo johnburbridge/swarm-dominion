@@ -1,0 +1,54 @@
+# Auto detect text files and normalize line endings
+* text=auto eol=lf
+
+# GDScript and config files
+*.gd text eol=lf
+*.cfg text eol=lf
+*.tres text eol=lf
+*.tscn text eol=lf
+*.import text eol=lf
+
+# Documentation
+*.md text eol=lf
+*.txt text eol=lf
+
+# Data files
+*.json text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+
+# Git LFS - Images
+*.png filter=lfs diff=lfs merge=lfs -text
+*.jpg filter=lfs diff=lfs merge=lfs -text
+*.jpeg filter=lfs diff=lfs merge=lfs -text
+*.gif filter=lfs diff=lfs merge=lfs -text
+*.bmp filter=lfs diff=lfs merge=lfs -text
+*.tga filter=lfs diff=lfs merge=lfs -text
+*.webp filter=lfs diff=lfs merge=lfs -text
+*.svg filter=lfs diff=lfs merge=lfs -text
+*.psd filter=lfs diff=lfs merge=lfs -text
+*.xcf filter=lfs diff=lfs merge=lfs -text
+
+# Git LFS - Audio
+*.wav filter=lfs diff=lfs merge=lfs -text
+*.mp3 filter=lfs diff=lfs merge=lfs -text
+*.ogg filter=lfs diff=lfs merge=lfs -text
+*.flac filter=lfs diff=lfs merge=lfs -text
+
+# Git LFS - Video
+*.mp4 filter=lfs diff=lfs merge=lfs -text
+*.webm filter=lfs diff=lfs merge=lfs -text
+*.ogv filter=lfs diff=lfs merge=lfs -text
+
+# Git LFS - Fonts
+*.ttf filter=lfs diff=lfs merge=lfs -text
+*.otf filter=lfs diff=lfs merge=lfs -text
+*.woff filter=lfs diff=lfs merge=lfs -text
+*.woff2 filter=lfs diff=lfs merge=lfs -text
+
+# Git LFS - 3D Models (future)
+*.glb filter=lfs diff=lfs merge=lfs -text
+*.gltf filter=lfs diff=lfs merge=lfs -text
+*.fbx filter=lfs diff=lfs merge=lfs -text
+*.obj filter=lfs diff=lfs merge=lfs -text
+*.blend filter=lfs diff=lfs merge=lfs -text

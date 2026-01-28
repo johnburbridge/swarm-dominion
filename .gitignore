@@ -1,0 +1,47 @@
+# Godot 4.x
+.godot/
+
+# Godot legacy
+.import/
+
+# Export credentials (NEVER commit)
+export_credentials.cfg
+
+# Translations (auto-generated)
+*.translation
+
+# Mono/C# specific
+.mono/
+data_*/
+mono_crash.*.json
+
+# Build artifacts
+build/
+dist/
+*.pck
+*.zip
+
+# OS files
+.DS_Store
+Thumbs.db
+.AppleDouble
+.LSOverride
+
+# IDE and editor
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+*.swp
+*.swo
+*~
+
+# Python (for gdtoolkit)
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Temporary files
+*.tmp
+*.bak

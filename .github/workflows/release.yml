@@ -1,0 +1,86 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+env:
+  GODOT_VERSION: "4.3.1"
+  EXPORT_NAME: swarm-dominion
+
+jobs:
+  build:
+    name: Build ${{ matrix.platform }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: Windows
+            preset: "Windows Desktop"
+            extension: ".exe"
+          - platform: Linux
+            preset: "Linux"
+            extension: ".x86_64"
+          - platform: macOS
+            preset: "macOS"
+            extension: ".zip"
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+
+      - name: Setup Godot
+        uses: chickensoft-games/setup-godot@v2
+        with:
+          version: ${{ env.GODOT_VERSION }}
+          use-dotnet: false
+
+      - name: Import project
+        run: godot --headless --import
+        continue-on-error: true
+
+      - name: Create export directory
+        run: mkdir -p build/${{ matrix.platform }}
+
+      - name: Export ${{ matrix.platform }}
+        run: |
+          godot --headless --export-release "${{ matrix.preset }}" build/${{ matrix.platform }}/${{ env.EXPORT_NAME }}${{ matrix.extension }}
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.EXPORT_NAME }}-${{ matrix.platform }}
+          path: build/${{ matrix.platform }}/
+
+  release:
+    name: Create Release
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts/
+
+      - name: Create zip archives
+        run: |
+          cd artifacts
+          for dir in */; do
+            zip -r "${dir%/}.zip" "$dir"
+          done
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: artifacts/*.zip
+          generate_release_notes: true
+          draft: false
+          prerelease: ${{ contains(github.ref, 'alpha') || contains(github.ref, 'beta') }}

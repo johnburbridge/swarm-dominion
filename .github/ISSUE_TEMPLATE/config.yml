@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: GitHub Discussions
+    url: https://github.com/johnburbridge/swarm-dominion/discussions
+    about: Ask questions and discuss ideas
+  - name: Documentation
+    url: https://github.com/johnburbridge/swarm-dominion/blob/main/docs/PRD.md
+    about: Read the Product Requirements Document

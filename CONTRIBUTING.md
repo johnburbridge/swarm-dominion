@@ -36,6 +36,9 @@ cd swarm-dominion
 git lfs install
 git lfs pull
 
+# Install git hooks (prevents accidental commits to main)
+./.githooks/install.sh
+
 # Install linting tools (optional but recommended)
 pip install gdtoolkit
 

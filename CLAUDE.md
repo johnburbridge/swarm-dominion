@@ -91,3 +91,23 @@ See @docs/PRD.md for full game design including:
 - Use `@onready` for node references, not `$Node` in `_ready()`
 - Signals should be defined at top of class
 - Export presets need to be configured before CI can build
+
+## Linear Integration
+
+**Team:** Spiral House
+- ID: `03ee7cf5-773e-4f53-bc0d-2e5e4d3bc3bc`
+
+**Project:** Swarm Dominion
+- ID: `c801f604-fdc4-45a0-b525-b85bb6e91704`
+
+**Issue Statuses:**
+
+| Status | ID | Type |
+|--------|-----|------|
+| Backlog | `1e7bd879-6685-4d94-8887-b7709b3ae6e8` | backlog |
+| Todo | `fc814d1f-22b5-4ce6-8b40-87c1312d54ba` | unstarted |
+| In Progress | `a433a32b-b815-4e11-af23-a74cb09606aa` | started |
+| In Review | `8d617a10-15f3-4e26-ad28-3653215c2f25` | started |
+| Done | `3d267fcf-15c0-4f3a-8725-2f1dd717e9e8` | completed |
+| Canceled | `a2581462-7e43-4edb-a13a-023a2f4a6b1e` | canceled |
+| Duplicate | `3f7c4359-7560-4bd9-93b7-9900671742aa` | canceled |

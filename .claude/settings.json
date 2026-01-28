@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git *)",
+      "Bash(godot --headless *)",
+      "Bash(godot --path *)",
+      "Bash(gdformat *)",
+      "Bash(gdlint *)",
+      "Bash(pip install gdtoolkit)"
+    ],
+    "deny": [
+      "Bash(rm -rf *)",
+      "Read(.env*)"
+    ]
+  },
+  "env": {
+    "GODOT_VERSION": "4.3.1"
+  }
+}

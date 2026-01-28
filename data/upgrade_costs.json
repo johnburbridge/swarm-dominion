@@ -1,0 +1,37 @@
+{
+  "unit_upgrades": {
+    "drone_to_hunter": {
+      "biomass": 50
+    },
+    "drone_to_guardian": {
+      "biomass": 50
+    },
+    "drone_to_scout": {
+      "biomass": 50
+    },
+    "hunter_to_elite": {
+      "biomass": 100
+    },
+    "guardian_to_elite": {
+      "biomass": 100
+    },
+    "scout_to_elite": {
+      "biomass": 100
+    }
+  },
+  "mother_evolution": {
+    "level_1_to_2": {
+      "biomass": 100,
+      "supply_increase": 5
+    },
+    "level_2_to_3": {
+      "biomass": 200,
+      "supply_increase": 5
+    }
+  },
+  "spawn_costs": {
+    "drone": {
+      "biomass": 25
+    }
+  }
+}

@@ -1,0 +1,64 @@
+name: Export Game
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+env:
+  GODOT_VERSION: "4.3.1"
+  EXPORT_NAME: swarm-dominion
+
+jobs:
+  export:
+    name: Export ${{ matrix.platform }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: Windows
+            preset: "Windows Desktop"
+            extension: ".exe"
+          - platform: Linux
+            preset: "Linux"
+            extension: ".x86_64"
+          - platform: macOS
+            preset: "macOS"
+            extension: ".dmg"
+          - platform: Web
+            preset: "Web"
+            extension: ".html"
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+
+      - name: Setup Godot
+        uses: chickensoft-games/setup-godot@v2
+        with:
+          version: ${{ env.GODOT_VERSION }}
+          use-dotnet: false
+
+      - name: Verify Godot
+        run: godot --version
+
+      - name: Import project
+        run: godot --headless --import
+        continue-on-error: true
+
+      - name: Create export directory
+        run: mkdir -p build/${{ matrix.platform }}
+
+      - name: Export ${{ matrix.platform }}
+        run: |
+          godot --headless --export-release "${{ matrix.preset }}" build/${{ matrix.platform }}/${{ env.EXPORT_NAME }}${{ matrix.extension }}
+        continue-on-error: true
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.EXPORT_NAME }}-${{ matrix.platform }}
+          path: build/${{ matrix.platform }}/
+          if-no-files-found: warn

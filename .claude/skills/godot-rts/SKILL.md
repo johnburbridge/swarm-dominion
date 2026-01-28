@@ -1,150 +1,163 @@
+---
+name: godot-rts
+description: This skill should be used when the user asks to "implement unit selection", "add pathfinding", "create a state machine for units", "implement fog of war", "add control point capture", "create resource gathering", "implement combat system", or when working on RTS game mechanics in Godot 4.x. Provides patterns and architecture guidance for Swarm Dominion development.
+---
+
 # Godot RTS Development Patterns
 
-## Unit Selection System
+Architectural patterns and implementation guidance for Swarm Dominion, a real-time strategy game built with Godot 4.x.
+
+## When to Use This Skill
+
+Apply these patterns when implementing:
+- Unit selection and control systems
+- Command/order processing for units
+- Resource gathering mechanics
+- Control point capture systems
+- Fog of war visibility
+- Unit state machines
+- Event-driven architecture
+
+## Core Architecture Principles
+
+### Signal-Based Communication
+
+Decouple systems using Godot's signal system. Define signals at the top of each class and emit them for state changes. Other systems connect to these signals rather than directly referencing each other.
 
 ```gdscript
-# Selection manager pattern
-signal selection_changed(units: Array[Unit])
+# Define signals at class top
+signal health_changed(new_health: int)
+signal unit_died
 
-var selected_units: Array[Unit] = []
-
-func select_unit(unit: Unit, add_to_selection: bool = false) -> void:
-    if not add_to_selection:
-        clear_selection()
-    if unit not in selected_units:
-        selected_units.append(unit)
-        unit.set_selected(true)
-    selection_changed.emit(selected_units)
-
-func box_select(rect: Rect2) -> void:
-    clear_selection()
-    for unit in get_tree().get_nodes_in_group("selectable"):
-        if rect.has_point(unit.global_position):
-            selected_units.append(unit)
-            unit.set_selected(true)
-    selection_changed.emit(selected_units)
+# Emit on state change
+func take_damage(amount: int) -> void:
+    current_health -= amount
+    health_changed.emit(current_health)
+    if current_health <= 0:
+        unit_died.emit()
 ```
 
-## Command Pattern for Unit Orders
+### EventBus Pattern
+
+Use the global EventBus autoload for cross-system communication. Systems subscribe to relevant events without direct coupling.
 
 ```gdscript
-class_name UnitCommand extends RefCounted
-
-var target_position: Vector2
-var target_unit: Unit
-var command_type: CommandType
-
-enum CommandType { MOVE, ATTACK, GATHER, HOLD }
-
-func execute(unit: Unit) -> void:
-    match command_type:
-        CommandType.MOVE:
-            unit.move_to(target_position)
-        CommandType.ATTACK:
-            unit.attack_target(target_unit)
-        CommandType.GATHER:
-            unit.gather_from(target_unit)
+# In any system - connect to events
+func _ready() -> void:
+    EventBus.unit_spawned.connect(_on_unit_spawned)
+    EventBus.control_point_captured.connect(_on_point_captured)
 ```
 
-## Resource Node Pattern
+See `scripts/autoload/event_bus.gd` for the full signal list.
+
+### Data-Driven Design
+
+Store unit stats, costs, and balance values in JSON files under `data/`. Load at runtime to enable easy tuning without code changes.
 
 ```gdscript
-class_name ResourceNode extends StaticBody2D
+var unit_stats: Dictionary
 
-signal depleted
-signal regenerated
-
-@export var max_resources: int = 100
-@export var regen_rate: float = 1.0
-@export var regen_delay: float = 5.0
-
-var current_resources: int = max_resources
-var _regen_timer: float = 0.0
-
-func harvest(amount: int) -> int:
-    var harvested = mini(amount, current_resources)
-    current_resources -= harvested
-    if current_resources <= 0:
-        depleted.emit()
-        _regen_timer = regen_delay
-    return harvested
+func _ready() -> void:
+    var file = FileAccess.open("res://data/unit_stats.json", FileAccess.READ)
+    unit_stats = JSON.parse_string(file.get_as_text())
 ```
 
-## Control Point Capture
+## Implementation Patterns
+
+### Unit Selection System
+
+Implement selection with a dedicated manager that tracks selected units and emits changes. Support single-click selection, box selection, and control groups.
+
+Key components:
+- `selected_units: Array[Unit]` - Currently selected units
+- `selection_changed` signal - Notify UI and other systems
+- Box selection via `Rect2.has_point()`
+- Control groups stored in dictionary by number key
+
+See `references/patterns.md` for complete implementation.
+
+### Unit State Machine
+
+Use an enum-based state machine for unit behavior. Each state has enter/exit/process methods. Transitions go through a central `change_state()` function.
+
+States for Swarm Dominion units:
+- `IDLE` - Waiting for orders
+- `MOVING` - Pathfinding to target
+- `ATTACKING` - Engaging enemy
+- `GATHERING` - Harvesting resources
+- `DEAD` - Playing death animation
+
+See `references/patterns.md` for state machine template.
+
+### Command Pattern
+
+Encapsulate unit orders as command objects. This enables:
+- Command queuing (shift-click)
+- Command history for replays
+- Network serialization for multiplayer
+
+Command types: `MOVE`, `ATTACK`, `GATHER`, `HOLD`, `STOP`
+
+### Control Point Capture
+
+Capture mechanics based on PRD:
+- Units in zone with no enemies = capturing
+- Multiple teams present = contested (no progress)
+- Progress resets when contested
+- Single unit captures at same rate as multiple
+
+### Resource Gathering
+
+Biomass nodes with:
+- Depletion on harvest
+- Regeneration after delay
+- Visual feedback for state
+- Signals for UI updates
+
+## Project-Specific Conventions
+
+### File Organization
+
+| Type | Location | Naming |
+|------|----------|--------|
+| Scenes | `scenes/{category}/` | `snake_case.tscn` |
+| Scripts | `scripts/{category}/` | `snake_case.gd` |
+| Unit scenes | `scenes/units/` | `drone.tscn`, `mother.tscn` |
+| System scripts | `scripts/systems/` | `resource_system.gd` |
+
+### GDScript Style
+
+Follow project conventions in CLAUDE.md:
+- `class_name PascalCase`
+- `const UPPER_SNAKE_CASE`
+- `var snake_case` with type hints
+- `func snake_case()` with return type hints
+- `_leading_underscore` for private members
+
+### Node References
+
+Use `@onready` for node references, not `$Node` in `_ready()`:
 
 ```gdscript
-class_name ControlPoint extends Area2D
-
-signal captured(team: int)
-signal contested
-
-@export var capture_time: float = 5.0
-
-var owning_team: int = -1
-var capturing_team: int = -1
-var capture_progress: float = 0.0
-
-func _physics_process(delta: float) -> void:
-    var teams_present = _get_teams_in_zone()
-
-    if teams_present.size() == 1:
-        var team = teams_present[0]
-        if team != owning_team:
-            capturing_team = team
-            capture_progress += delta / capture_time
-            if capture_progress >= 1.0:
-                _complete_capture(team)
-    elif teams_present.size() > 1:
-        contested.emit()
-        capture_progress = 0.0
+@onready var health_bar: ProgressBar = $HealthBar
+@onready var sprite: Sprite2D = $Sprite2D
 ```
 
-## Fog of War (Shader-based)
+## Additional Resources
 
-```gdscript
-# Reveal areas around units
-func update_fog() -> void:
-    var reveal_points: Array[Vector2] = []
-    for unit in get_tree().get_nodes_in_group("player_units"):
-        reveal_points.append(unit.global_position)
-    fog_shader.set_shader_parameter("reveal_points", reveal_points)
-```
+### Reference Files
 
-## Event Bus Pattern
+For detailed implementation patterns:
+- **`references/patterns.md`** - Complete code patterns for selection, state machines, commands, and more
 
-```gdscript
-# autoload/event_bus.gd
-extends Node
+### Example Files
 
-signal unit_spawned(unit: Unit)
-signal unit_died(unit: Unit)
-signal resources_changed(amount: int)
-signal control_point_captured(point: ControlPoint, team: int)
-signal victory(winning_team: int)
+Working examples in `examples/`:
+- **`examples/unit_base.gd`** - Base unit class template
+- **`examples/selection_manager.gd`** - Selection system implementation
 
-# Systems connect to these signals for loose coupling
-```
+### Project Documentation
 
-## State Machine for Units
-
-```gdscript
-enum UnitState { IDLE, MOVING, ATTACKING, GATHERING, DEAD }
-
-var current_state: UnitState = UnitState.IDLE
-
-func _physics_process(delta: float) -> void:
-    match current_state:
-        UnitState.IDLE:
-            _process_idle(delta)
-        UnitState.MOVING:
-            _process_moving(delta)
-        UnitState.ATTACKING:
-            _process_attacking(delta)
-        UnitState.GATHERING:
-            _process_gathering(delta)
-
-func change_state(new_state: UnitState) -> void:
-    _exit_state(current_state)
-    current_state = new_state
-    _enter_state(new_state)
-```
+- **`docs/PRD.md`** - Full game design and requirements
+- **`data/unit_stats.json`** - Unit balance values
+- **`data/upgrade_costs.json`** - Upgrade progression costs

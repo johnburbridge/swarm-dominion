@@ -50,7 +50,7 @@ jobs:
           godot --headless --export-release "${{ matrix.preset }}" build/${{ matrix.platform }}/${{ env.EXPORT_NAME }}${{ matrix.extension }}
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: ${{ env.EXPORT_NAME }}-${{ matrix.platform }}
           path: build/${{ matrix.platform }}/

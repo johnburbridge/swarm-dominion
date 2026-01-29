@@ -1,9 +1,18 @@
-[gd_scene load_steps=2 format=3 uid="uid://main_scene"]
+[gd_scene load_steps=3 format=3 uid="uid://main_scene"]
 
 [ext_resource type="Script" path="res://scripts/main.gd" id="1_main"]
+[ext_resource type="Texture2D" path="res://assets/sprites/grid_tile.png" id="2_grid"]
 
 [node name="Main" type="Node2D"]
 script = ExtResource("1_main")
+
+[node name="Background" type="Sprite2D" parent="."]
+z_index = -10
+texture_repeat = 2
+position = Vector2(960, 540)
+texture = ExtResource("2_grid")
+region_enabled = true
+region_rect = Rect2(0, 0, 3840, 2160)
 
 [node name="Camera2D" type="Camera2D" parent="."]
 position = Vector2(960, 540)

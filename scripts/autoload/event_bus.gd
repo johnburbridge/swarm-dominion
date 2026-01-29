@@ -7,6 +7,7 @@ signal unit_spawned(unit: Node)
 signal unit_died(unit: Node)
 signal unit_selected(unit: Node)
 signal unit_deselected(unit: Node)
+signal unit_attacked(attacker: Node, target: Node, damage: int)
 
 # Resource events
 signal resources_changed(player_id: int, new_amount: int)

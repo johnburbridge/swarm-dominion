@@ -7,6 +7,8 @@ script = ExtResource("1_main")
 
 [node name="Camera2D" type="Camera2D" parent="."]
 position = Vector2(960, 540)
+position_smoothing_enabled = true
+position_smoothing_speed = 5.0
 
 [node name="UI" type="CanvasLayer" parent="."]
 

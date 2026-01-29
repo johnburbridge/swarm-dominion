@@ -102,6 +102,7 @@ func _load_stats() -> void:
 	damage = unit_stats.get("damage", 10)
 	attack_speed = unit_stats.get("attack_speed", 1.0)
 	move_speed = unit_stats.get("move_speed", move_speed)
+	health_changed.emit(current_health, max_health)
 
 
 func _update_animation(direction: Vector2 = Vector2.ZERO) -> void:

@@ -268,6 +268,24 @@ func test_dead_unit_does_not_attack() -> void:
 	assert_eq(enemy.current_health, enemy_health, "Dead unit should not deal damage")
 
 
+func test_clears_target_when_enemy_leaves_range() -> void:
+	var attacker := _create_unit(1, Vector2(0, 0))
+	var enemy := _create_unit(2, Vector2(50, 0))
+	await get_tree().process_frame
+	await get_tree().physics_frame
+	await get_tree().physics_frame
+	await get_tree().physics_frame
+	assert_eq(attacker._attack_target, enemy, "Should be attacking enemy")
+	# Move enemy far out of range
+	enemy.position = Vector2(500, 0)
+	await get_tree().physics_frame
+	await get_tree().physics_frame
+	await get_tree().physics_frame
+	assert_null(
+		attacker._attack_target, "Should clear target when enemy leaves range"
+	)
+
+
 func test_no_attack_area_when_range_zero() -> void:
 	var unit := _drone_scene.instantiate() as UnitBase
 	unit.unit_type = "mother"

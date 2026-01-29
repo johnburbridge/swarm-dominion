@@ -214,6 +214,9 @@ func _on_body_entered_attack_range(body: Node2D) -> void:
 func _on_body_exited_attack_range(body: Node2D) -> void:
 	if body is UnitBase:
 		_enemies_in_range.erase(body)
+		if _attack_target == body:
+			_attack_target = null
+			attack_stopped.emit()
 
 
 func _on_unit_died(unit: Node) -> void:

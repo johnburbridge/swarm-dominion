@@ -7,53 +7,70 @@ on:
     branches: [main]
 
 env:
-  GODOT_VERSION: "4.3.1"
+  GODOT_VERSION: "4.6.0"
+  GUT_VERSION: "9.5.0"
 
 jobs:
   lint:
     name: GDScript Lint
     runs-on: ubuntu-latest
-
     steps:
       - uses: actions/checkout@v6
 
       - name: Set up Python
         uses: actions/setup-python@v6
         with:
-          python-version: '3.11'
+          python-version: "3.11"
 
       - name: Install gdtoolkit
         run: pip install gdtoolkit
 
       - name: Check GDScript format
-        run: |
-          if [ -d "scripts" ]; then
-            gdformat --check scripts/
-          fi
-        continue-on-error: true
+        run: gdformat --check scripts/
 
       - name: Run GDScript linter
-        run: |
-          if [ -d "scripts" ]; then
-            gdlint scripts/
-          fi
-        continue-on-error: true
+        run: gdlint scripts/
 
-  # TODO: Enable when GUT tests are set up
-  # test:
-  #   name: Unit Tests
-  #   runs-on: ubuntu-latest
-  #   needs: lint
-  #
-  #   steps:
-  #     - uses: actions/checkout@v6
-  #
-  #     - name: Download Godot
-  #       run: |
-  #         wget -q https://github.com/godotengine/godot/releases/download/${{ env.GODOT_VERSION }}-stable/Godot_v${{ env.GODOT_VERSION }}-stable_linux.x86_64.zip
-  #         unzip -q Godot_v${{ env.GODOT_VERSION }}-stable_linux.x86_64.zip
-  #         chmod +x Godot_v${{ env.GODOT_VERSION }}-stable_linux.x86_64
-  #
-  #     - name: Run GUT tests
-  #       run: |
-  #         ./Godot_v${{ env.GODOT_VERSION }}-stable_linux.x86_64 --headless -s addons/gut/gut_cmdln.gd
+  test:
+    name: GUT Tests
+    runs-on: ubuntu-latest
+    needs: lint
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          lfs: true
+
+      - name: Set up Godot
+        uses: chickensoft-games/setup-godot@v2
+        with:
+          version: ${{ env.GODOT_VERSION }}
+
+      - name: Download GUT addon
+        run: |
+          mkdir -p addons
+          wget -q "https://github.com/bitwes/Gut/archive/refs/tags/v${GUT_VERSION}.tar.gz" -O gut.tar.gz
+          tar -xzf gut.tar.gz
+          cp -r "Gut-${GUT_VERSION}/addons/gut" addons/gut
+          rm -rf gut.tar.gz "Gut-${GUT_VERSION}"
+
+      - name: Import Godot project
+        run: godot --headless --import --quit || true
+
+      - name: Create reports directory
+        run: mkdir -p reports
+
+      - name: Run GUT tests
+        run: >
+          godot --headless
+          -s addons/gut/gut_cmdln.gd
+          -gdir=res://tests
+          -ginclude_subdirs
+          -gexit
+          -gjunit_xml_file=reports/results.xml
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: test-results
+          path: reports/results.xml

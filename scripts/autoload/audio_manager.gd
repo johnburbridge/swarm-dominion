@@ -8,6 +8,7 @@ var _music_player: AudioStreamPlayer
 var _sfx_players: Array[AudioStreamPlayer] = []
 var _sfx_pool_size: int = 8
 
+
 func _ready() -> void:
 	_setup_music_player()
 	_setup_sfx_pool()
@@ -27,13 +28,13 @@ func _setup_sfx_pool() -> void:
 		_sfx_players.append(player)
 
 
-func play_music(stream: AudioStream, fade_in: float = 0.5) -> void:
+func play_music(stream: AudioStream, _fade_in: float = 0.5) -> void:
 	_music_player.stream = stream
 	_music_player.play()
 	# TODO: Implement fade in
 
 
-func stop_music(fade_out: float = 0.5) -> void:
+func stop_music(_fade_out: float = 0.5) -> void:
 	# TODO: Implement fade out
 	_music_player.stop()
 
@@ -51,6 +52,6 @@ func play_sfx(stream: AudioStream, volume_db: float = 0.0) -> void:
 	_sfx_players[0].play()
 
 
-func play_sfx_at_position(stream: AudioStream, position: Vector2, volume_db: float = 0.0) -> void:
+func play_sfx_at_position(stream: AudioStream, _position: Vector2, volume_db: float = 0.0) -> void:
 	# TODO: Implement positional audio with AudioStreamPlayer2D pool
 	play_sfx(stream, volume_db)

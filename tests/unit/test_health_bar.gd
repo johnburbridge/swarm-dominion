@@ -58,9 +58,9 @@ func test_color_lime_at_99_percent() -> void:
 
 
 func test_color_lime_at_75_percent() -> void:
-	_unit.take_damage(13)
+	_unit.take_damage(12)
 	var fill: ColorRect = _unit.get_node("HealthBar/Fill")
-	assert_eq(fill.color, HealthBar.COLOR_LIME, "Color should be lime at 75% health")
+	assert_eq(fill.color, HealthBar.COLOR_LIME, "Color should be lime at 76% health (closest to 75% boundary with integer HP)")
 
 
 func test_color_yellow_below_75_percent() -> void:

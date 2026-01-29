@@ -21,6 +21,9 @@ dist/
 *.pck
 *.zip
 
+# Test reports
+reports/
+
 # OS files
 .DS_Store
 Thumbs.db

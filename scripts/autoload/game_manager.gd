@@ -9,11 +9,12 @@ var current_map: Node = null
 # Player data
 var players: Dictionary = {}  # player_id -> PlayerData
 
+
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 
 
-func start_game(map_path: String) -> void:
+func start_game(_map_path: String) -> void:
 	current_state = GameState.LOADING
 	# TODO: Load map, initialize players
 	current_state = GameState.PLAYING

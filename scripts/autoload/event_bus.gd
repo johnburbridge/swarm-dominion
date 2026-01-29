@@ -18,9 +18,9 @@ signal control_point_contested(point: Node)
 signal victory_points_changed(player_id: int, points: int)
 
 # Game state events
-signal game_started()
-signal game_paused()
-signal game_resumed()
+signal game_started
+signal game_paused
+signal game_resumed
 signal game_ended(winning_team: int)
 
 # Match events

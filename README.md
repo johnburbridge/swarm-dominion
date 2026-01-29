@@ -4,6 +4,7 @@ A fast-paced real-time strategy game where alien monster factions battle for ter
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Godot Engine](https://img.shields.io/badge/Godot-4.3-blue.svg)](https://godotengine.org/)
+[![CI](https://github.com/johnburbridge/swarm-dominion/actions/workflows/ci.yml/badge.svg)](https://github.com/johnburbridge/swarm-dominion/actions/workflows/ci.yml)
 
 ## Overview
 

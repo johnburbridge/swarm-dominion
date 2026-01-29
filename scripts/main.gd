@@ -6,10 +6,17 @@ const DroneScene = preload("res://scenes/units/drone.tscn")
 
 var _test_drone: UnitBase
 
+@onready var _camera: Camera2D = $Camera2D
+
 
 func _ready() -> void:
 	print("Swarm Dominion initialized")
 	_spawn_test_unit()
+
+
+func _process(_delta: float) -> void:
+	if _test_drone:
+		_camera.global_position = _test_drone.global_position
 
 
 func _unhandled_input(event: InputEvent) -> void:

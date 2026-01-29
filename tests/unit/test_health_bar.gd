@@ -31,11 +31,6 @@ func test_fill_starts_at_full_width() -> void:
 	assert_eq(fill.size.x, HealthBar.BAR_WIDTH, "Fill should start at full width")
 
 
-func test_fill_starts_green() -> void:
-	var fill: ColorRect = _unit.get_node("HealthBar/Fill")
-	assert_eq(fill.color, HealthBar.COLOR_GREEN, "Fill should start green at full health")
-
-
 func test_fill_width_decreases_on_damage() -> void:
 	_unit.take_damage(25)
 	var fill: ColorRect = _unit.get_node("HealthBar/Fill")
@@ -51,22 +46,45 @@ func test_fill_width_zero_at_zero_health() -> void:
 	assert_almost_eq(fill.size.x, 0.0, 0.01, "Fill width should be 0 at zero health")
 
 
-func test_color_green_above_50_percent() -> void:
+func test_color_green_at_full_health() -> void:
+	var fill: ColorRect = _unit.get_node("HealthBar/Fill")
+	assert_eq(fill.color, HealthBar.COLOR_GREEN, "Color should be green at 100% health")
+
+
+func test_color_lime_at_99_percent() -> void:
+	_unit.take_damage(1)
+	var fill: ColorRect = _unit.get_node("HealthBar/Fill")
+	assert_eq(fill.color, HealthBar.COLOR_LIME, "Color should be lime at 99% health")
+
+
+func test_color_lime_at_75_percent() -> void:
+	_unit.take_damage(13)
+	var fill: ColorRect = _unit.get_node("HealthBar/Fill")
+	assert_eq(fill.color, HealthBar.COLOR_LIME, "Color should be lime at 75% health")
+
+
+func test_color_yellow_below_75_percent() -> void:
+	_unit.take_damage(14)
+	var fill: ColorRect = _unit.get_node("HealthBar/Fill")
+	assert_eq(fill.color, HealthBar.COLOR_YELLOW, "Color should be yellow below 75% health")
+
+
+func test_color_yellow_above_50_percent() -> void:
 	_unit.take_damage(24)
 	var fill: ColorRect = _unit.get_node("HealthBar/Fill")
-	assert_eq(fill.color, HealthBar.COLOR_GREEN, "Color should be green above 50% health")
+	assert_eq(fill.color, HealthBar.COLOR_YELLOW, "Color should be yellow above 50% health")
 
 
-func test_color_yellow_at_50_percent() -> void:
+func test_color_orange_at_50_percent() -> void:
 	_unit.take_damage(25)
 	var fill: ColorRect = _unit.get_node("HealthBar/Fill")
-	assert_eq(fill.color, HealthBar.COLOR_YELLOW, "Color should be yellow at exactly 50% health")
+	assert_eq(fill.color, HealthBar.COLOR_ORANGE, "Color should be orange at 50% health")
 
 
-func test_color_yellow_above_25_percent() -> void:
+func test_color_orange_above_25_percent() -> void:
 	_unit.take_damage(37)
 	var fill: ColorRect = _unit.get_node("HealthBar/Fill")
-	assert_eq(fill.color, HealthBar.COLOR_YELLOW, "Color should be yellow above 25% health")
+	assert_eq(fill.color, HealthBar.COLOR_ORANGE, "Color should be orange above 25% health")
 
 
 func test_color_red_at_25_percent() -> void:

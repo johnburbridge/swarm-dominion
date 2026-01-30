@@ -26,6 +26,7 @@ config/icon="res://icon.svg"
 EventBus="*res://scripts/autoload/event_bus.gd"
 GameManager="*res://scripts/autoload/game_manager.gd"
 AudioManager="*res://scripts/autoload/audio_manager.gd"
+SelectionManager="*res://scripts/autoload/selection_manager.gd"
 
 [display]
 

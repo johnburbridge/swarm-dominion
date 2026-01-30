@@ -81,6 +81,8 @@ func _die() -> void:
 		var shape_node := _attack_area.get_child(0) as CollisionShape2D
 		if shape_node:
 			shape_node.set_deferred("disabled", true)
+	if _sprite.sprite_frames.has_animation("death"):
+		_sprite.play("death")
 	remove_from_group("units")
 	EventBus.unit_died.emit(self)
 	var tween := create_tween()

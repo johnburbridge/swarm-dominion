@@ -20,12 +20,14 @@ var damage: int = 0
 var attack_speed: float = 1.0
 var attack_range: float = 0.0
 var _is_dead: bool = false
+var _is_selected: bool = false
 var _target_position: Vector2
 var _is_moving: bool = false
 var _attack_target: UnitBase = null
 var _attack_cooldown: float = 0.0
 var _enemies_in_range: Array[UnitBase] = []
 var _attack_area: Area2D = null
+var _selection_circle: Sprite2D = null
 
 @onready var _sprite: AnimatedSprite2D = $AnimatedSprite2D
 
@@ -35,6 +37,7 @@ func _ready() -> void:
 	_target_position = position
 	_load_stats()
 	_setup_attack_area()
+	_setup_selection_circle()
 	EventBus.unit_died.connect(_on_unit_died)
 
 
@@ -48,6 +51,16 @@ func _physics_process(delta: float) -> void:
 		_process_attacking(delta)
 	else:
 		_try_acquire_target()
+
+
+func set_selected(selected: bool) -> void:
+	_is_selected = selected
+	if _selection_circle:
+		_selection_circle.visible = selected
+	if selected:
+		EventBus.unit_selected.emit(self)
+	else:
+		EventBus.unit_deselected.emit(self)
 
 
 func move_to(target: Vector2) -> void:
@@ -74,6 +87,7 @@ func take_damage(amount: int) -> void:
 func _die() -> void:
 	_is_dead = true
 	_is_moving = false
+	SelectionManager.remove_unit(self)
 	velocity = Vector2.ZERO
 	_attack_target = null
 	_enemies_in_range.clear()
@@ -130,6 +144,14 @@ func _setup_attack_area() -> void:
 	add_child(_attack_area)
 	_attack_area.body_entered.connect(_on_body_entered_attack_range)
 	_attack_area.body_exited.connect(_on_body_exited_attack_range)
+
+
+func _setup_selection_circle() -> void:
+	_selection_circle = Sprite2D.new()
+	_selection_circle.texture = preload("res://assets/sprites/ui/selection_circle.png")
+	_selection_circle.z_index = -1
+	_selection_circle.visible = false
+	add_child(_selection_circle)
 
 
 func _process_movement() -> void:

@@ -105,16 +105,29 @@ func _handle_command() -> void:
 
 
 func _spawn_test_units() -> void:
-	var player_drone := DroneScene.instantiate()
-	player_drone.team_id = 1
-	player_drone.position = Vector2(760, 540)
-	player_drone.modulate = Color(0.7, 1.0, 0.7)
-	add_child(player_drone)
-	print("Spawned player drone at ", player_drone.position)
+	var player_positions: Array[Vector2] = [
+		Vector2(700, 480),
+		Vector2(760, 540),
+		Vector2(820, 480),
+		Vector2(760, 600),
+	]
+	for pos in player_positions:
+		var drone := DroneScene.instantiate()
+		drone.team_id = 1
+		drone.position = pos
+		drone.modulate = Color(0.7, 1.0, 0.7)
+		add_child(drone)
+	print("Spawned %d player drones" % player_positions.size())
 
-	var enemy_drone := DroneScene.instantiate()
-	enemy_drone.team_id = 2
-	enemy_drone.position = Vector2(1160, 540)
-	enemy_drone.modulate = Color(1.0, 0.7, 0.7)
-	add_child(enemy_drone)
-	print("Spawned enemy drone at ", enemy_drone.position)
+	var enemy_positions: Array[Vector2] = [
+		Vector2(1100, 480),
+		Vector2(1160, 540),
+		Vector2(1220, 480),
+	]
+	for pos in enemy_positions:
+		var drone := DroneScene.instantiate()
+		drone.team_id = 2
+		drone.position = pos
+		drone.modulate = Color(1.0, 0.7, 0.7)
+		add_child(drone)
+	print("Spawned %d enemy drones" % enemy_positions.size())

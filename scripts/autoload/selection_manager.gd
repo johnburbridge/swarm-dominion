@@ -19,6 +19,15 @@ func select_unit(unit: UnitBase) -> void:
 	selection_changed.emit(_selected_units)
 
 
+func select_units(units: Array[UnitBase]) -> void:
+	deselect_all()
+	for unit in units:
+		if is_instance_valid(unit) and unit not in _selected_units:
+			_selected_units.append(unit)
+			unit.set_selected(true)
+	selection_changed.emit(_selected_units)
+
+
 func deselect_all() -> void:
 	for unit in _selected_units:
 		if is_instance_valid(unit):

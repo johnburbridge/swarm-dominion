@@ -56,3 +56,44 @@ func test_remove_unit_on_death() -> void:
 	SelectionManager.remove_unit(_unit_a)
 	var selected := SelectionManager.get_selected_units()
 	assert_eq(selected.size(), 0, "selection should be empty after remove_unit")
+
+
+func test_select_units_batch_selects_multiple() -> void:
+	var units: Array[UnitBase] = [_unit_a, _unit_b]
+	SelectionManager.select_units(units)
+	var selected := SelectionManager.get_selected_units()
+	assert_eq(selected.size(), 2, "should have two selected units")
+	assert_has(selected, _unit_a, "should contain unit_a")
+	assert_has(selected, _unit_b, "should contain unit_b")
+
+
+func test_select_units_replaces_previous_selection() -> void:
+	SelectionManager.select_unit(_unit_a)
+	var units: Array[UnitBase] = [_unit_b]
+	SelectionManager.select_units(units)
+	var selected := SelectionManager.get_selected_units()
+	assert_eq(selected.size(), 1, "should have one selected unit")
+	assert_eq(selected[0], _unit_b, "selected unit should be unit_b")
+	assert_false(_unit_a._is_selected, "unit_a should be deselected")
+
+
+func test_select_units_empty_array_deselects_all() -> void:
+	SelectionManager.select_unit(_unit_a)
+	var units: Array[UnitBase] = []
+	SelectionManager.select_units(units)
+	var selected := SelectionManager.get_selected_units()
+	assert_eq(selected.size(), 0, "selection should be empty")
+
+
+func test_select_units_emits_signal() -> void:
+	watch_signals(SelectionManager)
+	var units: Array[UnitBase] = [_unit_a, _unit_b]
+	SelectionManager.select_units(units)
+	assert_signal_emitted(SelectionManager, "selection_changed")
+
+
+func test_select_units_ignores_duplicates() -> void:
+	var units: Array[UnitBase] = [_unit_a, _unit_a]
+	SelectionManager.select_units(units)
+	var selected := SelectionManager.get_selected_units()
+	assert_eq(selected.size(), 1, "should have one selected unit, not duplicates")

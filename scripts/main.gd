@@ -4,8 +4,14 @@ extends Node2D
 
 const DroneScene = preload("res://scenes/units/drone.tscn")
 const PLAYER_TEAM_ID: int = 1
+const DRAG_THRESHOLD: float = 4.0
+
+var _is_select_pressed: bool = false
+var _select_press_position: Vector2 = Vector2.ZERO
+var _is_dragging: bool = false
 
 @onready var _camera: Camera2D = $Camera2D
+@onready var _selection_box: SelectionBox = $UI/SelectionBox
 
 
 func _ready() -> void:
@@ -20,13 +26,60 @@ func _process(_delta: float) -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	if event.is_action_pressed("select"):
-		_handle_select()
+	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
+		if event.pressed:
+			_begin_select(event.position)
+		else:
+			_end_select(event.position)
+	elif event is InputEventMouseMotion and _is_select_pressed:
+		_update_drag(event.position)
 	elif event.is_action_pressed("command"):
 		_handle_command()
 
 
-func _handle_select() -> void:
+func _begin_select(screen_pos: Vector2) -> void:
+	_is_select_pressed = true
+	_select_press_position = screen_pos
+	_is_dragging = false
+
+
+func _update_drag(screen_pos: Vector2) -> void:
+	if not _is_dragging:
+		if _select_press_position.distance_to(screen_pos) >= DRAG_THRESHOLD:
+			_is_dragging = true
+			_selection_box.begin(_select_press_position)
+	if _is_dragging:
+		_selection_box.update_end(screen_pos)
+
+
+func _end_select(_screen_pos: Vector2) -> void:
+	if not _is_select_pressed:
+		return
+	_is_select_pressed = false
+
+	if _is_dragging:
+		_finish_drag_select()
+	else:
+		_handle_click_select()
+
+	_is_dragging = false
+
+
+func _finish_drag_select() -> void:
+	var rect := _selection_box.finish()
+	var selected: Array[UnitBase] = []
+	var canvas_transform := get_viewport().get_canvas_transform()
+	for node in get_tree().get_nodes_in_group("units"):
+		var unit := node as UnitBase
+		if unit == null or unit.team_id != PLAYER_TEAM_ID:
+			continue
+		var unit_screen_pos := canvas_transform * unit.global_position
+		if rect.has_point(unit_screen_pos):
+			selected.append(unit)
+	SelectionManager.select_units(selected)
+
+
+func _handle_click_select() -> void:
 	var click_pos := get_global_mouse_position()
 	var space_state := get_world_2d().direct_space_state
 	var params := PhysicsPointQueryParameters2D.new()

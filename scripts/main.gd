@@ -9,6 +9,7 @@ const DRAG_THRESHOLD: float = 4.0
 var _is_select_pressed: bool = false
 var _select_press_position: Vector2 = Vector2.ZERO
 var _is_dragging: bool = false
+var _attack_move_pending: bool = false
 
 @onready var _camera: Camera2D = $Camera2D
 @onready var _selection_box: SelectionBox = $UI/SelectionBox
@@ -33,6 +34,8 @@ func _unhandled_input(event: InputEvent) -> void:
 			_end_select(event.position)
 	elif event is InputEventMouseMotion and _is_select_pressed:
 		_update_drag(event.position)
+	elif event.is_action_pressed("attack_move"):
+		_attack_move_pending = true
 	elif event.is_action_pressed("command"):
 		_handle_command()
 
@@ -80,6 +83,10 @@ func _finish_drag_select() -> void:
 
 
 func _handle_click_select() -> void:
+	if _attack_move_pending:
+		_attack_move_pending = false
+		_issue_attack_move()
+		return
 	var click_pos := get_global_mouse_position()
 	var space_state := get_world_2d().direct_space_state
 	var params := PhysicsPointQueryParameters2D.new()
@@ -94,6 +101,14 @@ func _handle_click_select() -> void:
 			return
 
 	SelectionManager.deselect_all()
+
+
+func _issue_attack_move() -> void:
+	var click_pos := get_global_mouse_position()
+	var selected := SelectionManager.get_selected_units()
+	for unit in selected:
+		if is_instance_valid(unit):
+			unit.attack_move_to(click_pos)
 
 
 func _handle_command() -> void:

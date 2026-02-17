@@ -6,6 +6,8 @@ signal health_changed(current_health: int, max_health: int)
 signal attack_started(target: Node)
 signal attack_stopped
 
+enum UnitState { IDLE, MOVING, ATTACKING, ATTACK_MOVING, DEAD }
+
 ## Threshold distance to consider "arrived" at target
 const ARRIVAL_THRESHOLD: float = 5.0
 
@@ -19,10 +21,16 @@ var current_health: int = 1
 var damage: int = 0
 var attack_speed: float = 1.0
 var attack_range: float = 0.0
-var _is_dead: bool = false
+var _state: UnitState = UnitState.IDLE
+var _has_attack_move_destination: bool = false
+var _is_dead: bool:
+	get:
+		return _state == UnitState.DEAD
+var _is_moving: bool:
+	get:
+		return _state == UnitState.MOVING or _state == UnitState.ATTACK_MOVING
 var _is_selected: bool = false
 var _target_position: Vector2
-var _is_moving: bool = false
 var _attack_target: UnitBase = null
 var _attack_cooldown: float = 0.0
 var _enemies_in_range: Array[UnitBase] = []
@@ -42,15 +50,19 @@ func _ready() -> void:
 
 
 func _physics_process(delta: float) -> void:
-	if _is_dead:
-		return
-
-	if _is_moving:
-		_process_movement()
-	elif _attack_target != null:
-		_process_attacking(delta)
-	else:
-		_try_acquire_target()
+	match _state:
+		UnitState.IDLE:
+			_try_acquire_target()
+			if _attack_target != null:
+				_state = UnitState.ATTACKING
+		UnitState.MOVING:
+			_process_movement()
+		UnitState.ATTACKING:
+			_process_attacking(delta)
+		UnitState.ATTACK_MOVING:
+			_process_attack_moving()
+		UnitState.DEAD:
+			pass
 
 
 func set_selected(selected: bool) -> void:
@@ -64,14 +76,26 @@ func set_selected(selected: bool) -> void:
 
 
 func move_to(target: Vector2) -> void:
-	if _is_dead:
+	if _state == UnitState.DEAD:
 		return
-	# Prevent jitter when clicking current position
 	if position.distance_to(target) <= ARRIVAL_THRESHOLD:
 		return
 	_target_position = target
-	_is_moving = true
+	_state = UnitState.MOVING
 	_attack_target = null
+	_has_attack_move_destination = false
+	attack_stopped.emit()
+
+
+func attack_move_to(target: Vector2) -> void:
+	if _state == UnitState.DEAD:
+		return
+	if position.distance_to(target) <= ARRIVAL_THRESHOLD:
+		return
+	_target_position = target
+	_state = UnitState.ATTACK_MOVING
+	_attack_target = null
+	_has_attack_move_destination = true
 	attack_stopped.emit()
 
 
@@ -85,8 +109,7 @@ func take_damage(amount: int) -> void:
 
 
 func _die() -> void:
-	_is_dead = true
-	_is_moving = false
+	_state = UnitState.DEAD
 	SelectionManager.remove_unit(self)
 	velocity = Vector2.ZERO
 	_attack_target = null
@@ -158,7 +181,8 @@ func _process_movement() -> void:
 	var distance := position.distance_to(_target_position)
 
 	if distance <= ARRIVAL_THRESHOLD:
-		_is_moving = false
+		_state = UnitState.IDLE
+		_has_attack_move_destination = false
 		velocity = Vector2.ZERO
 		_update_animation()
 		return
@@ -175,7 +199,11 @@ func _process_attacking(delta: float) -> void:
 	if not _is_valid_target(_attack_target):
 		_attack_target = null
 		attack_stopped.emit()
-		_try_acquire_target()
+		if _has_attack_move_destination:
+			_state = UnitState.ATTACK_MOVING
+		else:
+			_state = UnitState.IDLE
+			_try_acquire_target()
 		return
 
 	# Face the target
@@ -187,6 +215,15 @@ func _process_attacking(delta: float) -> void:
 	if _attack_cooldown <= 0.0:
 		_perform_attack()
 		_attack_cooldown = _get_attack_interval()
+
+
+func _process_attack_moving() -> void:
+	if _attack_target == null:
+		_try_acquire_target()
+	if _attack_target != null:
+		_state = UnitState.ATTACKING
+		return
+	_process_movement()
 
 
 func _try_acquire_target() -> void:

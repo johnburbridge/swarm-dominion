@@ -3,7 +3,10 @@ extends Node
 
 signal selection_changed(selected_units: Array[UnitBase])
 
+const GROUP_COUNT: int = 5
+
 var _selected_units: Array[UnitBase] = []
+var _control_groups: Array[Array] = [[], [], [], [], []]
 
 
 func get_selected_units() -> Array[UnitBase]:
@@ -40,3 +43,25 @@ func remove_unit(unit: UnitBase) -> void:
 	if unit in _selected_units:
 		_selected_units.erase(unit)
 		selection_changed.emit(_selected_units)
+
+
+func assign_group(index: int) -> void:
+	if index < 0 or index >= GROUP_COUNT:
+		return
+	_control_groups[index] = _selected_units.duplicate()
+
+
+func recall_group(index: int) -> void:
+	if index < 0 or index >= GROUP_COUNT:
+		return
+	var valid_units: Array[UnitBase] = []
+	for unit in _control_groups[index]:
+		if is_instance_valid(unit) and not unit._is_dead:
+			valid_units.append(unit)
+	_control_groups[index].assign(valid_units)
+	select_units(valid_units)
+
+
+func clear_all_groups() -> void:
+	for i in range(GROUP_COUNT):
+		_control_groups[i] = []

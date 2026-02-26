@@ -36,6 +36,14 @@ func _unhandled_input(event: InputEvent) -> void:
 		_update_drag(event.position)
 	elif event.is_action_pressed("attack_move"):
 		_attack_move_pending = true
+	elif event is InputEventKey and event.pressed and not event.echo:
+		var key := event.keycode
+		if key >= KEY_1 and key <= KEY_5:
+			var group_index := key - KEY_1
+			if event.ctrl_pressed:
+				SelectionManager.assign_group(group_index)
+			else:
+				SelectionManager.recall_group(group_index)
 	elif event.is_action_pressed("command"):
 		_handle_command()
 

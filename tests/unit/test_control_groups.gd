@@ -97,3 +97,19 @@ func test_unit_in_multiple_groups() -> void:
 	SelectionManager.recall_group(1)
 	selected = SelectionManager.get_selected_units()
 	assert_eq(selected.size(), 2, "group 1 should have 2 units")
+
+
+func test_group_center_calculation() -> void:
+	var unit_a := _create_unit(1, Vector2(0, 0))
+	var unit_b := _create_unit(1, Vector2(200, 0))
+	await get_tree().process_frame
+	SelectionManager.select_units([unit_a, unit_b] as Array[UnitBase])
+	SelectionManager.assign_group(0)
+	var center := SelectionManager.get_group_center(0)
+	assert_almost_eq(center.x, 100.0, 1.0, "center X should be average of 0 and 200")
+	assert_almost_eq(center.y, 0.0, 1.0, "center Y should be 0")
+
+
+func test_group_center_empty_returns_zero() -> void:
+	var center := SelectionManager.get_group_center(2)
+	assert_eq(center, Vector2.ZERO, "empty group center should be Vector2.ZERO")

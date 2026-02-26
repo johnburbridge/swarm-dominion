@@ -67,3 +67,20 @@ func recall_group(index: int) -> void:
 func clear_all_groups() -> void:
 	for i in range(GROUP_COUNT):
 		_control_groups[i] = []
+
+
+func get_group_center(index: int) -> Vector2:
+	if index < 0 or index >= GROUP_COUNT:
+		return Vector2.ZERO
+	var group: Array = _control_groups[index]
+	if group.is_empty():
+		return Vector2.ZERO
+	var center := Vector2.ZERO
+	var count := 0
+	for unit in group:
+		if is_instance_valid(unit):
+			center += unit.global_position
+			count += 1
+	if count == 0:
+		return Vector2.ZERO
+	return center / count

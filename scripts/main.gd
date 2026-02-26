@@ -5,11 +5,14 @@ extends Node2D
 const DroneScene = preload("res://scenes/units/drone.tscn")
 const PLAYER_TEAM_ID: int = 1
 const DRAG_THRESHOLD: float = 4.0
+const DOUBLE_TAP_THRESHOLD: float = 0.3
 
 var _is_select_pressed: bool = false
 var _select_press_position: Vector2 = Vector2.ZERO
 var _is_dragging: bool = false
 var _attack_move_pending: bool = false
+var _last_recall_group: int = -1
+var _last_recall_time: float = 0.0
 
 @onready var _camera: Camera2D = $Camera2D
 @onready var _selection_box: SelectionBox = $UI/SelectionBox
@@ -43,7 +46,7 @@ func _unhandled_input(event: InputEvent) -> void:
 			if event.ctrl_pressed:
 				SelectionManager.assign_group(group_index)
 			else:
-				SelectionManager.recall_group(group_index)
+				_recall_group(group_index)
 	elif event.is_action_pressed("command"):
 		_handle_command()
 
@@ -117,6 +120,17 @@ func _issue_attack_move() -> void:
 	for unit in selected:
 		if is_instance_valid(unit):
 			unit.attack_move_to(click_pos)
+
+
+func _recall_group(index: int) -> void:
+	var now := Time.get_ticks_msec() / 1000.0
+	if index == _last_recall_group and (now - _last_recall_time) < DOUBLE_TAP_THRESHOLD:
+		var center := SelectionManager.get_group_center(index)
+		if center != Vector2.ZERO:
+			_camera.global_position = center
+	_last_recall_group = index
+	_last_recall_time = now
+	SelectionManager.recall_group(index)
 
 
 func _handle_command() -> void:

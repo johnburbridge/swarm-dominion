@@ -61,3 +61,39 @@ func test_recall_empty_group_does_nothing() -> void:
 	SelectionManager.recall_group(3)
 	var selected := SelectionManager.get_selected_units()
 	assert_eq(selected.size(), 0, "recall empty group should deselect all")
+
+
+func test_dead_unit_removed_from_group() -> void:
+	var unit_a := _create_unit(1, Vector2(0, 0))
+	var unit_b := _create_unit(1, Vector2(100, 0))
+	await get_tree().process_frame
+	SelectionManager.select_units([unit_a, unit_b] as Array[UnitBase])
+	SelectionManager.assign_group(0)
+	# Kill unit_a
+	unit_a.take_damage(unit_a.max_health)
+	# Recall group
+	SelectionManager.recall_group(0)
+	var selected := SelectionManager.get_selected_units()
+	assert_eq(selected.size(), 1, "dead unit should be removed from group")
+	assert_eq(selected[0], unit_b, "surviving unit should remain")
+
+
+func test_unit_in_multiple_groups() -> void:
+	var unit_a := _create_unit(1, Vector2(0, 0))
+	var unit_b := _create_unit(1, Vector2(100, 0))
+	await get_tree().process_frame
+	# Assign unit_a to group 0
+	SelectionManager.select_units([unit_a] as Array[UnitBase])
+	SelectionManager.assign_group(0)
+	# Assign unit_a + unit_b to group 1
+	SelectionManager.select_units([unit_a, unit_b] as Array[UnitBase])
+	SelectionManager.assign_group(1)
+	# Recall group 0
+	SelectionManager.recall_group(0)
+	var selected := SelectionManager.get_selected_units()
+	assert_eq(selected.size(), 1, "group 0 should have 1 unit")
+	assert_eq(selected[0], unit_a, "group 0 should have unit_a")
+	# Recall group 1
+	SelectionManager.recall_group(1)
+	selected = SelectionManager.get_selected_units()
+	assert_eq(selected.size(), 2, "group 1 should have 2 units")

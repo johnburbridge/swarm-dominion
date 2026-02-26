@@ -43,6 +43,8 @@ func remove_unit(unit: UnitBase) -> void:
 	if unit in _selected_units:
 		_selected_units.erase(unit)
 		selection_changed.emit(_selected_units)
+	for group in _control_groups:
+		group.erase(unit)
 
 
 func assign_group(index: int) -> void:

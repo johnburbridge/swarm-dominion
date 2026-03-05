@@ -18,6 +18,7 @@ var _camera: Camera2D = null
 
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_STOP
+	clip_contents = true
 
 
 func set_camera(camera: Camera2D) -> void:

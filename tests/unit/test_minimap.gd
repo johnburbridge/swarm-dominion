@@ -105,6 +105,13 @@ func test_mouse_filter_stops_input() -> void:
 	)
 
 
+# --- Clip contents test ---
+
+
+func test_clip_contents_enabled() -> void:
+	assert_true(_minimap.clip_contents, "minimap should clip drawing to its bounds")
+
+
 # --- Viewport rect clamping tests ---
 
 

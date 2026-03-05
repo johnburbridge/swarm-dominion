@@ -16,11 +16,13 @@ var _last_recall_time: float = 0.0
 
 @onready var _camera: Camera2D = $Camera2D
 @onready var _selection_box: SelectionBox = $UI/SelectionBox
+@onready var _minimap: Minimap = $UI/Minimap
 
 
 func _ready() -> void:
 	print("Swarm Dominion initialized")
 	_spawn_test_units()
+	_minimap.set_camera(_camera)
 
 
 func _process(_delta: float) -> void:

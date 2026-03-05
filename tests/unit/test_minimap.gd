@@ -103,3 +103,32 @@ func test_mouse_filter_stops_input() -> void:
 		Control.MOUSE_FILTER_STOP,
 		"minimap should stop mouse input from passing through",
 	)
+
+
+# --- Viewport rect clamping tests ---
+
+
+func test_viewport_rect_clamped_to_minimap_bounds() -> void:
+	# Camera at world origin — half the viewport extends into negative space
+	var cam_pos := Vector2.ZERO
+	var half_vp := Minimap.VIEWPORT_SIZE / 2.0
+	var top_left := _minimap.world_to_minimap(cam_pos - half_vp)
+	var bottom_right := _minimap.world_to_minimap(cam_pos + half_vp)
+	var raw_rect := Rect2(top_left, bottom_right - top_left)
+	var clamped := raw_rect.intersection(Rect2(Vector2.ZERO, Minimap.MINIMAP_SIZE))
+	# Raw rect should extend past minimap origin (negative coords)
+	assert_true(
+		raw_rect.position.x < 0.0 or raw_rect.position.y < 0.0,
+		"raw rect should bleed outside minimap",
+	)
+	# Clamped rect should stay within bounds
+	assert_true(clamped.position.x >= 0.0, "clamped rect left should be >= 0")
+	assert_true(clamped.position.y >= 0.0, "clamped rect top should be >= 0")
+	assert_true(
+		clamped.end.x <= Minimap.MINIMAP_SIZE.x,
+		"clamped rect right should be <= minimap width",
+	)
+	assert_true(
+		clamped.end.y <= Minimap.MINIMAP_SIZE.y,
+		"clamped rect bottom should be <= minimap height",
+	)

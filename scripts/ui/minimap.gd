@@ -59,8 +59,10 @@ func _draw() -> void:
 		var half_viewport := VIEWPORT_SIZE / 2.0
 		var top_left := world_to_minimap(cam_pos - half_viewport)
 		var bottom_right := world_to_minimap(cam_pos + half_viewport)
-		var rect := Rect2(top_left, bottom_right - top_left)
-		draw_rect(rect, VIEWPORT_RECT_COLOR, false, 1.0)
+		var raw_rect := Rect2(top_left, bottom_right - top_left)
+		var clamped_rect := raw_rect.intersection(Rect2(Vector2.ZERO, MINIMAP_SIZE))
+		if clamped_rect.has_area():
+			draw_rect(clamped_rect, VIEWPORT_RECT_COLOR, false, 1.0)
 
 
 func _gui_input(event: InputEvent) -> void:

@@ -40,6 +40,14 @@ func minimap_to_world(minimap_pos: Vector2) -> Vector2:
 	)
 
 
+func clamp_to_map(world_pos: Vector2) -> Vector2:
+	var half_vp := VIEWPORT_SIZE / 2.0
+	return Vector2(
+		clampf(world_pos.x, MAP_ORIGIN.x + half_vp.x, MAP_ORIGIN.x + MAP_SIZE.x - half_vp.x),
+		clampf(world_pos.y, MAP_ORIGIN.y + half_vp.y, MAP_ORIGIN.y + MAP_SIZE.y - half_vp.y),
+	)
+
+
 func _process(_delta: float) -> void:
 	queue_redraw()
 
@@ -72,7 +80,8 @@ func _gui_input(event: InputEvent) -> void:
 		var mb_event: InputEventMouseButton = event as InputEventMouseButton
 		if mb_event.button_index == MOUSE_BUTTON_LEFT and mb_event.pressed:
 			var local_pos: Vector2 = mb_event.position
-			var world_pos := minimap_to_world(local_pos)
+			var world_pos := clamp_to_map(minimap_to_world(local_pos))
 			if _camera != null and is_instance_valid(_camera):
 				_camera.global_position = world_pos
+				_camera.reset_smoothing()
 			accept_event()

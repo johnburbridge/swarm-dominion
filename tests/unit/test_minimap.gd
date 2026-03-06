@@ -140,3 +140,31 @@ func test_viewport_rect_clamped_to_minimap_bounds() -> void:
 		clamped.end.y <= Minimap.MINIMAP_SIZE.y,
 		"clamped rect bottom should be <= minimap height",
 	)
+
+
+# --- Click-to-navigate camera tests ---
+
+
+func test_click_sets_camera_position() -> void:
+	var camera := Camera2D.new()
+	add_child_autofree(camera)
+	_minimap.set_camera(camera)
+	var click_pos := Minimap.MINIMAP_SIZE / 2.0
+	var event := InputEventMouseButton.new()
+	event.button_index = MOUSE_BUTTON_LEFT
+	event.pressed = true
+	event.position = click_pos
+	_minimap._gui_input(event)
+	var expected_world := _minimap.minimap_to_world(click_pos)
+	assert_almost_eq(
+		camera.global_position.x,
+		expected_world.x,
+		0.01,
+		"camera X should match clicked world position",
+	)
+	assert_almost_eq(
+		camera.global_position.y,
+		expected_world.y,
+		0.01,
+		"camera Y should match clicked world position",
+	)

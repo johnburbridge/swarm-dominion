@@ -15,42 +15,43 @@ func before_each() -> void:
 # --- Coordinate projection tests ---
 
 
-func test_world_origin_maps_to_minimap_origin() -> void:
-	var result := _minimap.world_to_minimap(Vector2.ZERO)
-	assert_eq(result, Vector2.ZERO, "world origin should map to minimap origin")
+func test_map_origin_maps_to_minimap_origin() -> void:
+	var result := _minimap.world_to_minimap(Minimap.MAP_ORIGIN)
+	assert_eq(result, Vector2.ZERO, "map origin should map to minimap origin")
 
 
-func test_world_bottom_right_maps_to_minimap_bottom_right() -> void:
-	var result := _minimap.world_to_minimap(Minimap.MAP_SIZE)
-	assert_eq(result, Minimap.MINIMAP_SIZE, "world bottom-right should map to minimap bottom-right")
+func test_map_bottom_right_maps_to_minimap_bottom_right() -> void:
+	var result := _minimap.world_to_minimap(Minimap.MAP_ORIGIN + Minimap.MAP_SIZE)
+	assert_eq(result, Minimap.MINIMAP_SIZE, "map bottom-right should map to minimap bottom-right")
 
 
-func test_world_center_maps_to_minimap_center() -> void:
-	var result := _minimap.world_to_minimap(Minimap.MAP_SIZE / 2.0)
+func test_map_center_maps_to_minimap_center() -> void:
+	var result := _minimap.world_to_minimap(Minimap.MAP_ORIGIN + Minimap.MAP_SIZE / 2.0)
 	var expected := Minimap.MINIMAP_SIZE / 2.0
 	assert_almost_eq(result.x, expected.x, 0.01, "center X should map correctly")
 	assert_almost_eq(result.y, expected.y, 0.01, "center Y should map correctly")
 
 
-func test_minimap_origin_maps_to_world_origin() -> void:
+func test_minimap_origin_maps_to_map_origin() -> void:
 	var result := _minimap.minimap_to_world(Vector2.ZERO)
-	assert_eq(result, Vector2.ZERO, "minimap origin should map to world origin")
+	assert_eq(result, Minimap.MAP_ORIGIN, "minimap origin should map to map origin")
 
 
-func test_minimap_bottom_right_maps_to_world_bottom_right() -> void:
+func test_minimap_bottom_right_maps_to_map_bottom_right() -> void:
 	var result := _minimap.minimap_to_world(Minimap.MINIMAP_SIZE)
-	assert_eq(result, Minimap.MAP_SIZE, "minimap bottom-right should map to world bottom-right")
+	var expected := Minimap.MAP_ORIGIN + Minimap.MAP_SIZE
+	assert_eq(result, expected, "minimap bottom-right should map to map bottom-right")
 
 
-func test_minimap_center_maps_to_world_center() -> void:
+func test_minimap_center_maps_to_map_center() -> void:
 	var result := _minimap.minimap_to_world(Minimap.MINIMAP_SIZE / 2.0)
-	var expected := Minimap.MAP_SIZE / 2.0
+	var expected := Minimap.MAP_ORIGIN + Minimap.MAP_SIZE / 2.0
 	assert_almost_eq(result.x, expected.x, 0.01, "center X should map correctly")
 	assert_almost_eq(result.y, expected.y, 0.01, "center Y should map correctly")
 
 
 func test_roundtrip_world_to_minimap_to_world() -> void:
-	var original := Vector2(1920, 1080)
+	var original := Vector2(960, 540)
 	var minimap_pos := _minimap.world_to_minimap(original)
 	var result := _minimap.minimap_to_world(minimap_pos)
 	assert_almost_eq(result.x, original.x, 0.01, "roundtrip X should preserve value")
@@ -58,8 +59,8 @@ func test_roundtrip_world_to_minimap_to_world() -> void:
 
 
 func test_world_to_minimap_scales_correctly() -> void:
-	var quarter_world := Minimap.MAP_SIZE / 4.0
-	var result := _minimap.world_to_minimap(quarter_world)
+	var quarter := Minimap.MAP_ORIGIN + Minimap.MAP_SIZE / 4.0
+	var result := _minimap.world_to_minimap(quarter)
 	var expected := Minimap.MINIMAP_SIZE / 4.0
 	assert_almost_eq(result.x, expected.x, 0.01, "quarter X should scale")
 	assert_almost_eq(result.y, expected.y, 0.01, "quarter Y should scale")
@@ -116,8 +117,8 @@ func test_clip_contents_enabled() -> void:
 
 
 func test_viewport_rect_clamped_to_minimap_bounds() -> void:
-	# Camera at world origin — half the viewport extends into negative space
-	var cam_pos := Vector2.ZERO
+	# Camera at map origin — half the viewport extends past the map edge
+	var cam_pos := Minimap.MAP_ORIGIN
 	var half_vp := Minimap.VIEWPORT_SIZE / 2.0
 	var top_left := _minimap.world_to_minimap(cam_pos - half_vp)
 	var bottom_right := _minimap.world_to_minimap(cam_pos + half_vp)

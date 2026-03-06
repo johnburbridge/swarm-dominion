@@ -2,6 +2,7 @@ class_name Minimap extends Control
 ## Renders a minimap showing unit positions and camera viewport.
 ## Supports click-to-navigate.
 
+const MAP_ORIGIN: Vector2 = Vector2(-960, -540)
 const MAP_SIZE: Vector2 = Vector2(3840, 2160)
 const MINIMAP_SIZE: Vector2 = Vector2(200, 112)
 const VIEWPORT_SIZE: Vector2 = Vector2(1920, 1080)
@@ -27,15 +28,15 @@ func set_camera(camera: Camera2D) -> void:
 
 func world_to_minimap(world_pos: Vector2) -> Vector2:
 	return Vector2(
-		world_pos.x / MAP_SIZE.x * MINIMAP_SIZE.x,
-		world_pos.y / MAP_SIZE.y * MINIMAP_SIZE.y,
+		(world_pos.x - MAP_ORIGIN.x) / MAP_SIZE.x * MINIMAP_SIZE.x,
+		(world_pos.y - MAP_ORIGIN.y) / MAP_SIZE.y * MINIMAP_SIZE.y,
 	)
 
 
 func minimap_to_world(minimap_pos: Vector2) -> Vector2:
 	return Vector2(
-		minimap_pos.x / MINIMAP_SIZE.x * MAP_SIZE.x,
-		minimap_pos.y / MINIMAP_SIZE.y * MAP_SIZE.y,
+		minimap_pos.x / MINIMAP_SIZE.x * MAP_SIZE.x + MAP_ORIGIN.x,
+		minimap_pos.y / MINIMAP_SIZE.y * MAP_SIZE.y + MAP_ORIGIN.y,
 	)
 
 

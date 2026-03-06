@@ -155,7 +155,7 @@ func test_click_sets_camera_position() -> void:
 	event.pressed = true
 	event.position = click_pos
 	_minimap._gui_input(event)
-	var expected_world := _minimap.minimap_to_world(click_pos)
+	var expected_world := _minimap.clamp_to_map(_minimap.minimap_to_world(click_pos))
 	assert_almost_eq(
 		camera.global_position.x,
 		expected_world.x,
@@ -168,3 +168,18 @@ func test_click_sets_camera_position() -> void:
 		0.01,
 		"camera Y should match clicked world position",
 	)
+
+
+func test_click_at_edge_clamps_camera_to_map_bounds() -> void:
+	var camera := Camera2D.new()
+	add_child_autofree(camera)
+	_minimap.set_camera(camera)
+	var event := InputEventMouseButton.new()
+	event.button_index = MOUSE_BUTTON_LEFT
+	event.pressed = true
+	event.position = Vector2.ZERO
+	_minimap._gui_input(event)
+	var half_vp := Minimap.VIEWPORT_SIZE / 2.0
+	var min_cam := Minimap.MAP_ORIGIN + half_vp
+	assert_almost_eq(camera.global_position.x, min_cam.x, 0.01, "camera X should be clamped to min")
+	assert_almost_eq(camera.global_position.y, min_cam.y, 0.01, "camera Y should be clamped to min")

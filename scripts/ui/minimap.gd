@@ -75,4 +75,5 @@ func _gui_input(event: InputEvent) -> void:
 			var world_pos := minimap_to_world(local_pos)
 			if _camera != null and is_instance_valid(_camera):
 				_camera.global_position = world_pos
+				_camera.reset_smoothing()
 			accept_event()

@@ -25,12 +25,6 @@ func _ready() -> void:
 	_minimap.set_camera(_camera)
 
 
-func _process(_delta: float) -> void:
-	var selected := SelectionManager.get_selected_units()
-	if selected.size() > 0 and is_instance_valid(selected[0]):
-		_camera.global_position = selected[0].global_position
-
-
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
 		if event.pressed:
@@ -130,6 +124,7 @@ func _recall_group(index: int) -> void:
 		var center := SelectionManager.get_group_center(index)
 		if center != Vector2.ZERO:
 			_camera.global_position = center
+			_camera.reset_smoothing()
 	_last_recall_group = index
 	_last_recall_time = now
 	SelectionManager.recall_group(index)

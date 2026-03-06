@@ -1,8 +1,9 @@
-[gd_scene load_steps=4 format=3 uid="uid://main_scene"]
+[gd_scene load_steps=5 format=3 uid="uid://main_scene"]
 
 [ext_resource type="Script" path="res://scripts/main.gd" id="1_main"]
 [ext_resource type="Texture2D" path="res://assets/sprites/grid_tile.png" id="2_grid"]
 [ext_resource type="Script" path="res://scripts/ui/selection_box.gd" id="3_selbox"]
+[ext_resource type="Script" path="res://scripts/ui/minimap.gd" id="4_minimap"]
 
 [node name="Main" type="Node2D"]
 script = ExtResource("1_main")
@@ -30,6 +31,22 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 script = ExtResource("3_selbox")
+
+[node name="Minimap" type="Control" parent="UI"]
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -208.0
+offset_top = -120.0
+offset_right = -8.0
+offset_bottom = -8.0
+grow_horizontal = 0
+grow_vertical = 0
+mouse_filter = 0
+custom_minimum_size = Vector2(200, 112)
+script = ExtResource("4_minimap")
 
 [node name="DebugLabel" type="Label" parent="UI"]
 offset_left = 10.0

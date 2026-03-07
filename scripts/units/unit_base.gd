@@ -6,7 +6,7 @@ signal health_changed(current_health: int, max_health: int)
 signal attack_started(target: Node)
 signal attack_stopped
 
-enum UnitState { IDLE, MOVING, ATTACKING, ATTACK_MOVING, DEAD }
+enum UnitState { IDLE, MOVING, ATTACKING, ATTACK_MOVING, ENGAGING, DEAD }
 
 ## Threshold distance to consider "arrived" at target
 const ARRIVAL_THRESHOLD: float = 5.0
@@ -28,13 +28,19 @@ var _is_dead: bool:
 		return _state == UnitState.DEAD
 var _is_moving: bool:
 	get:
-		return _state == UnitState.MOVING or _state == UnitState.ATTACK_MOVING
+		return (
+			_state == UnitState.MOVING
+			or _state == UnitState.ATTACK_MOVING
+			or _state == UnitState.ENGAGING
+		)
 var _is_selected: bool = false
 var _target_position: Vector2
 var _attack_target: UnitBase = null
 var _attack_cooldown: float = 0.0
 var _enemies_in_range: Array[UnitBase] = []
 var _attack_area: Area2D = null
+var _engage_target: UnitBase = null
+var _engage_offset: Vector2 = Vector2.ZERO
 var _selection_circle: Sprite2D = null
 
 @onready var _sprite: AnimatedSprite2D = $AnimatedSprite2D
@@ -61,6 +67,8 @@ func _physics_process(delta: float) -> void:
 			_process_attacking(delta)
 		UnitState.ATTACK_MOVING:
 			_process_attack_moving()
+		UnitState.ENGAGING:
+			_process_engaging()
 		UnitState.DEAD:
 			pass
 
@@ -84,6 +92,8 @@ func move_to(target: Vector2) -> void:
 	_state = UnitState.MOVING
 	_attack_target = null
 	_has_attack_move_destination = false
+	_engage_target = null
+	_engage_offset = Vector2.ZERO
 	attack_stopped.emit()
 
 
@@ -96,6 +106,21 @@ func attack_move_to(target: Vector2) -> void:
 	_state = UnitState.ATTACK_MOVING
 	_attack_target = null
 	_has_attack_move_destination = true
+	_engage_target = null
+	_engage_offset = Vector2.ZERO
+	attack_stopped.emit()
+
+
+func engage_unit(target: UnitBase, approach_offset: Vector2 = Vector2.ZERO) -> void:
+	if _state == UnitState.DEAD:
+		return
+	if not _is_valid_target(target):
+		return
+	_engage_target = target
+	_engage_offset = approach_offset
+	_attack_target = null
+	_has_attack_move_destination = false
+	_state = UnitState.ENGAGING
 	attack_stopped.emit()
 
 
@@ -113,6 +138,8 @@ func _die() -> void:
 	SelectionManager.remove_unit(self)
 	velocity = Vector2.ZERO
 	_attack_target = null
+	_engage_target = null
+	_engage_offset = Vector2.ZERO
 	_enemies_in_range.clear()
 	if _attack_area != null:
 		var shape_node := _attack_area.get_child(0) as CollisionShape2D
@@ -199,7 +226,9 @@ func _process_attacking(delta: float) -> void:
 	if not _is_valid_target(_attack_target):
 		_attack_target = null
 		attack_stopped.emit()
-		if _has_attack_move_destination:
+		if _is_valid_target(_engage_target):
+			_state = UnitState.ENGAGING
+		elif _has_attack_move_destination:
 			_state = UnitState.ATTACK_MOVING
 		else:
 			_state = UnitState.IDLE
@@ -224,6 +253,27 @@ func _process_attack_moving() -> void:
 		_state = UnitState.ATTACKING
 		return
 	_process_movement()
+
+
+func _process_engaging() -> void:
+	if not _is_valid_target(_engage_target):
+		_engage_target = null
+		_engage_offset = Vector2.ZERO
+		_state = UnitState.IDLE
+		return
+
+	if _engage_target in _enemies_in_range:
+		_attack_target = _engage_target
+		_attack_cooldown = 0.0
+		_state = UnitState.ATTACKING
+		attack_started.emit(_attack_target)
+		return
+
+	var destination := _engage_target.global_position + _engage_offset
+	var direction := (destination - global_position).normalized()
+	velocity = direction * move_speed
+	_update_animation(direction)
+	move_and_slide()
 
 
 func _try_acquire_target() -> void:
@@ -286,6 +336,9 @@ func _on_unit_died(unit: Node) -> void:
 		if _attack_target == unit:
 			_attack_target = null
 			attack_stopped.emit()
+		if _engage_target == unit:
+			_engage_target = null
+			_engage_offset = Vector2.ZERO
 
 
 func _update_animation(direction: Vector2 = Vector2.ZERO) -> void:

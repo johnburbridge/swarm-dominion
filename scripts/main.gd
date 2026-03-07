@@ -133,9 +133,43 @@ func _recall_group(index: int) -> void:
 func _handle_command() -> void:
 	var click_pos := get_global_mouse_position()
 	var selected := SelectionManager.get_selected_units()
+	if selected.is_empty():
+		return
+
+	var enemy := _get_enemy_at_position(click_pos)
+	if enemy != null:
+		_issue_engage(enemy, selected)
+	else:
+		for unit in selected:
+			if is_instance_valid(unit):
+				unit.move_to(click_pos)
+
+
+func _get_enemy_at_position(pos: Vector2) -> UnitBase:
+	var space_state := get_world_2d().direct_space_state
+	var params := PhysicsPointQueryParameters2D.new()
+	params.position = pos
+	params.collision_mask = 1
+	var results := space_state.intersect_point(params)
+	for result in results:
+		var collider = result["collider"]
+		if collider is UnitBase and collider.team_id != PLAYER_TEAM_ID and not collider._is_dead:
+			return collider
+	return null
+
+
+func _issue_engage(target: UnitBase, selected: Array[UnitBase]) -> void:
+	var valid_units: Array[UnitBase] = []
 	for unit in selected:
-		if is_instance_valid(unit):
-			unit.move_to(click_pos)
+		if is_instance_valid(unit) and not unit._is_dead:
+			valid_units.append(unit)
+	var count := valid_units.size()
+	if count == 0:
+		return
+	for i in range(count):
+		var angle := (float(i) / count) * TAU
+		var offset := Vector2(cos(angle), sin(angle)) * (valid_units[i].attack_range * 0.6)
+		valid_units[i].engage_unit(target, offset)
 
 
 func _spawn_test_units() -> void:

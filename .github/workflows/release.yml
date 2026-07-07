@@ -6,7 +6,7 @@ on:
       - 'v*'
 
 env:
-  GODOT_VERSION: "4.3.1"
+  GODOT_VERSION: "4.7.0"
   EXPORT_NAME: swarm-dominion
 
 jobs:

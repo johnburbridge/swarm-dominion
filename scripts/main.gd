@@ -3,6 +3,7 @@ extends Node2D
 ## This is the entry point for the game.
 
 const DroneScene = preload("res://scenes/units/drone.tscn")
+const BiomassNodeScene = preload("res://scenes/resources/biomass_node.tscn")
 const PLAYER_TEAM_ID: int = 1
 const DRAG_THRESHOLD: float = 4.0
 const DOUBLE_TAP_THRESHOLD: float = 0.3
@@ -22,6 +23,7 @@ var _last_recall_time: float = 0.0
 func _ready() -> void:
 	print("Swarm Dominion initialized")
 	_spawn_test_units()
+	_spawn_biomass_nodes()
 	_minimap.set_camera(_camera)
 
 
@@ -170,6 +172,20 @@ func _issue_engage(target: UnitBase, selected: Array[UnitBase]) -> void:
 		var angle := (float(i) / count) * TAU
 		var offset := Vector2(cos(angle), sin(angle)) * (valid_units[i].attack_range * 0.6)
 		valid_units[i].engage_unit(target, offset)
+
+
+func _spawn_biomass_nodes() -> void:
+	var positions: Array[Vector2] = [
+		Vector2(500, 400),
+		Vector2(950, 300),
+		Vector2(950, 700),
+		Vector2(1400, 400),
+	]
+	for pos in positions:
+		var node := BiomassNodeScene.instantiate()
+		node.position = pos
+		add_child(node)
+	print("Spawned %d biomass nodes" % positions.size())
 
 
 func _spawn_test_units() -> void:

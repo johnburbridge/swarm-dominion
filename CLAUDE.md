@@ -4,7 +4,7 @@ A fast-paced RTS game built with Godot 4.x where alien monster factions battle f
 
 ## Tech Stack
 
-- **Engine:** Godot 4.3.1
+- **Engine:** Godot 4.7 (stable; CI pins 4.7.0)
 - **Language:** GDScript
 - **Testing:** GUT (Godot Unit Testing)
 - **Linting:** gdtoolkit (gdformat, gdlint)

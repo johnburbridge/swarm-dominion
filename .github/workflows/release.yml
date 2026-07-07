@@ -6,7 +6,7 @@ on:
       - 'v*'
 
 env:
-  GODOT_VERSION: "4.3.1"
+  GODOT_VERSION: "4.7.0"
   EXPORT_NAME: swarm-dominion
 
 jobs:
@@ -28,7 +28,7 @@ jobs:
             extension: ".zip"
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           lfs: true
 
@@ -50,7 +50,7 @@ jobs:
           godot --headless --export-release "${{ matrix.preset }}" build/${{ matrix.platform }}/${{ env.EXPORT_NAME }}${{ matrix.extension }}
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ env.EXPORT_NAME }}-${{ matrix.platform }}
           path: build/${{ matrix.platform }}/
@@ -63,7 +63,7 @@ jobs:
       contents: write
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Download all artifacts
         uses: actions/download-artifact@v8

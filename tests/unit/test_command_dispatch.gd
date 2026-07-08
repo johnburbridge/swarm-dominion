@@ -14,6 +14,7 @@ const NODE_POS := Vector2(5000, 0)
 const EMPTY_POS := Vector2(8000, 0)
 const ENEMY_POS := Vector2(6000, 0)
 const SAME_POS := Vector2(7000, 0)
+const DEPLETED_POS := Vector2(9000, 0)
 
 var _main_scene: PackedScene
 var _drone_scene: PackedScene
@@ -124,6 +125,11 @@ func test_enemy_takes_priority_over_node() -> void:
 	var unit_b := _create_player_unit(Vector2(7100, 100))
 	await _settle()
 
+	assert_not_null(
+		_main._get_biomass_node_at_position(SAME_POS),
+		"node must be detectable at the overlap position for this test to prove priority"
+	)
+
 	var selected: Array[UnitBase] = [unit_a, unit_b]
 	_main._dispatch_command_at(SAME_POS, selected)
 
@@ -141,6 +147,30 @@ func test_enemy_takes_priority_over_node() -> void:
 	assert_null(unit_b._harvest_target, "unit_b should not have a harvest target")
 	# Keep the node referenced so it isn't collected before the query above.
 	assert_not_null(node, "node exists at the same position")
+
+
+# --- Scenario 5: right-click a depleted node falls back to move ---
+
+
+func test_right_click_depleted_node_moves() -> void:
+	var node := _create_node(DEPLETED_POS)
+	node.harvest(node.max_biomass)
+	assert_true(node.is_depleted(), "node should be depleted after harvesting max_biomass")
+	var unit_a := _create_player_unit(Vector2(8900, 100))
+	var unit_b := _create_player_unit(Vector2(9100, 100))
+	await _settle()
+
+	var selected: Array[UnitBase] = [unit_a, unit_b]
+	_main._dispatch_command_at(node.global_position, selected)
+
+	assert_eq(
+		unit_a._state, UnitBase.UnitState.MOVING, "unit_a should MOVE, not HARVEST, a depleted node"
+	)
+	assert_eq(
+		unit_b._state, UnitBase.UnitState.MOVING, "unit_b should MOVE, not HARVEST, a depleted node"
+	)
+	assert_null(unit_a._harvest_target, "unit_a should not have a harvest target")
+	assert_null(unit_b._harvest_target, "unit_b should not have a harvest target")
 
 
 # --- Helper: _get_biomass_node_at_position finds/returns null ---

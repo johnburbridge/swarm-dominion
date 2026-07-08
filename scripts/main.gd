@@ -7,6 +7,8 @@ const BiomassNodeScene = preload("res://scenes/resources/biomass_node.tscn")
 const PLAYER_TEAM_ID: int = 1
 const DRAG_THRESHOLD: float = 4.0
 const DOUBLE_TAP_THRESHOLD: float = 0.3
+const UNIT_COLLISION_MASK: int = 1
+const BIOMASS_NODE_COLLISION_MASK: int = 4
 
 var _is_select_pressed: bool = false
 var _select_press_position: Vector2 = Vector2.ZERO
@@ -100,7 +102,7 @@ func _handle_click_select() -> void:
 	var space_state := get_world_2d().direct_space_state
 	var params := PhysicsPointQueryParameters2D.new()
 	params.position = click_pos
-	params.collision_mask = 1
+	params.collision_mask = UNIT_COLLISION_MASK
 	var results := space_state.intersect_point(params)
 
 	for result in results:
@@ -144,6 +146,8 @@ func _dispatch_command_at(click_pos: Vector2, selected: Array[UnitBase]) -> void
 	if enemy != null:
 		_issue_engage(enemy, selected)
 		return
+	# Only non-depleted nodes reach here (see _get_biomass_node_at_position),
+	# so a right-click on a depleted node falls through to the move fallback below.
 	var node := _get_biomass_node_at_position(click_pos)
 	if node != null:
 		for unit in selected:
@@ -159,7 +163,7 @@ func _get_enemy_at_position(pos: Vector2) -> UnitBase:
 	var space_state := get_world_2d().direct_space_state
 	var params := PhysicsPointQueryParameters2D.new()
 	params.position = pos
-	params.collision_mask = 1
+	params.collision_mask = UNIT_COLLISION_MASK
 	var results := space_state.intersect_point(params)
 	for result in results:
 		var collider = result["collider"]
@@ -169,15 +173,15 @@ func _get_enemy_at_position(pos: Vector2) -> UnitBase:
 
 
 func _get_biomass_node_at_position(pos: Vector2) -> BiomassNode:
-	# collision_mask = 4 targets the biomass-node physics layer (layer 3).
+	# BIOMASS_NODE_COLLISION_MASK targets the biomass-node physics layer (layer 3).
 	var space_state := get_world_2d().direct_space_state
 	var params := PhysicsPointQueryParameters2D.new()
 	params.position = pos
-	params.collision_mask = 4
+	params.collision_mask = BIOMASS_NODE_COLLISION_MASK
 	var results := space_state.intersect_point(params)
 	for result in results:
 		var collider = result["collider"]
-		if collider is BiomassNode:
+		if collider is BiomassNode and not collider.is_depleted():
 			return collider
 	return null
 

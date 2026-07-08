@@ -1,8 +1,9 @@
-[gd_scene load_steps=5 format=3 uid="uid://drone_scene"]
+[gd_scene load_steps=6 format=3 uid="uid://drone_scene"]
 
 [ext_resource type="Script" path="res://scripts/units/unit_base.gd" id="1_script"]
 [ext_resource type="SpriteFrames" path="res://assets/sprites/units/drone_frames.tres" id="2_frames"]
 [ext_resource type="PackedScene" uid="uid://health_bar_scene" path="res://scenes/ui/health_bar.tscn" id="3_health_bar"]
+[ext_resource type="PackedScene" uid="uid://harvest_indicator_scene" path="res://scenes/ui/harvest_indicator.tscn" id="4_harvest_indicator"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_1"]
 radius = 16.0
@@ -18,3 +19,5 @@ animation = &"idle"
 shape = SubResource("CircleShape2D_1")
 
 [node name="HealthBar" parent="." instance=ExtResource("3_health_bar")]
+
+[node name="HarvestIndicator" parent="." instance=ExtResource("4_harvest_indicator")]

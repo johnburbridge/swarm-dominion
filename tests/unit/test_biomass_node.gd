@@ -245,3 +245,40 @@ func test_depleted_node_regenerates_and_is_harvestable_again() -> void:
 	for _i in range(40):
 		await get_tree().physics_frame
 	assert_false(node.is_depleted(), "regrown node should no longer be depleted (AC5)")
+
+
+# --- Visual feedback (SPI-1388) ---
+# Expected constants (asserted as literals so RED fails cleanly at the missing
+# method rather than a parse error on a not-yet-existing const):
+#   MAX_DRAW_RADIUS = 20.0, MIN_DRAW_RADIUS = 6.0
+
+
+func test_display_radius_full_is_max() -> void:
+	var node := _create_node()
+	await get_tree().process_frame
+	assert_eq(node.display_radius_for_ratio(1.0), 20.0, "full node draws at max radius")
+
+
+func test_display_radius_empty_is_husk_floor() -> void:
+	var node := _create_node()
+	await get_tree().process_frame
+	assert_eq(node.display_radius_for_ratio(0.0), 6.0, "empty node draws at the husk floor")
+	assert_gt(node.display_radius_for_ratio(0.0), 0.0, "husk floor must be > 0 (stays visible)")
+
+
+func test_display_radius_is_monotonic() -> void:
+	var node := _create_node()
+	await get_tree().process_frame
+	var r_low: float = node.display_radius_for_ratio(0.25)
+	var r_high: float = node.display_radius_for_ratio(0.75)
+	assert_gt(r_high, r_low, "radius should grow with the biomass ratio")
+	var r_mid: float = node.display_radius_for_ratio(0.5)
+	assert_gt(r_mid, 6.0, "mid radius above the floor")
+	assert_lt(r_mid, 20.0, "mid radius below the max")
+
+
+func test_display_radius_clamps_out_of_range() -> void:
+	var node := _create_node()
+	await get_tree().process_frame
+	assert_eq(node.display_radius_for_ratio(2.0), 20.0, "ratio > 1 clamps to max radius")
+	assert_eq(node.display_radius_for_ratio(-1.0), 6.0, "ratio < 0 clamps to the floor")

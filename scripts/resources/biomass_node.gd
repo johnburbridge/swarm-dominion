@@ -6,6 +6,10 @@ signal biomass_changed(current: int, maximum: int)
 signal biomass_depleted
 signal fully_regenerated
 
+const MAX_DRAW_RADIUS: float = 20.0
+const MIN_DRAW_RADIUS: float = 6.0
+const MIN_DRAW_ALPHA: float = 0.4
+
 @export var max_biomass: int = 100
 @export var regen_rate: float = 2.0
 @export var regen_delay: float = 10.0
@@ -25,8 +29,17 @@ func _ready() -> void:
 
 
 func _draw() -> void:
-	draw_circle(Vector2.ZERO, 20.0, Color(0.4, 0.9, 0.3, 0.8))
-	draw_circle(Vector2.ZERO, 14.0, Color(0.3, 1.0, 0.2, 0.6))
+	var ratio: float = 0.0
+	if max_biomass > 0:
+		ratio = clampf(float(current_biomass) / float(max_biomass), 0.0, 1.0)
+	var radius := display_radius_for_ratio(ratio)
+	var dim := lerpf(MIN_DRAW_ALPHA, 1.0, ratio)
+	draw_circle(Vector2.ZERO, radius, Color(0.4, 0.9, 0.3, 0.8 * dim))
+	draw_circle(Vector2.ZERO, radius * 0.7, Color(0.3, 1.0, 0.2, 0.6 * dim))
+
+
+func display_radius_for_ratio(ratio: float) -> float:
+	return lerpf(MIN_DRAW_RADIUS, MAX_DRAW_RADIUS, clampf(ratio, 0.0, 1.0))
 
 
 func is_depleted() -> bool:

@@ -142,3 +142,106 @@ func test_harvest_on_depleted_node_returns_zero() -> void:
 	node.current_biomass = 0
 	var extracted := node.harvest(10)
 	assert_eq(extracted, 0, "harvesting a depleted node should return 0")
+
+
+# --- Regeneration (SPI-1388) ---
+
+
+func test_no_regen_before_delay_elapses() -> void:
+	var node := _create_node()
+	await get_tree().process_frame
+	node.regen_delay = 0.2
+	node.regen_rate = 1000.0
+	node.harvest(60)  # current 40, resets regen countdown, enables processing
+	for _i in range(5):  # ~0.083s elapsed, still < 0.2s delay
+		await get_tree().physics_frame
+	assert_eq(node.current_biomass, 40, "should not regrow before regen_delay elapses")
+
+
+func test_regen_after_delay() -> void:
+	var node := _create_node()
+	await get_tree().process_frame
+	node.regen_delay = 0.2
+	node.regen_rate = 1000.0
+	node.harvest(60)  # current 40
+	for _i in range(40):  # ~0.67s elapsed, well past 0.2s delay
+		await get_tree().physics_frame
+	assert_gt(node.current_biomass, 40, "should regrow after regen_delay elapses")
+
+
+func test_regen_caps_at_max() -> void:
+	var node := _create_node()
+	await get_tree().process_frame
+	node.regen_delay = 0.2
+	node.regen_rate = 100000.0
+	node.harvest(90)  # current 10
+	for _i in range(60):
+		await get_tree().physics_frame
+	assert_eq(node.current_biomass, node.max_biomass, "regrowth should cap at max_biomass")
+
+
+func test_partial_node_recovers() -> void:
+	var node := _create_node()
+	await get_tree().process_frame
+	node.regen_delay = 0.2
+	node.regen_rate = 1000.0
+	node.harvest(50)  # current 50 (partial, never emptied)
+	for _i in range(40):
+		await get_tree().physics_frame
+	assert_gt(node.current_biomass, 50, "a partially-drained node should recover")
+
+
+func test_harvest_resets_regen_countdown() -> void:
+	var node := _create_node()
+	await get_tree().process_frame
+	node.regen_delay = 0.3
+	node.regen_rate = 1000.0
+	node.harvest(60)  # current 40, t=0
+	for _i in range(10):  # ~0.167s, still < 0.3s
+		await get_tree().physics_frame
+	node.harvest(5)  # current 35, resets t back to 0
+	var after_second_harvest := node.current_biomass
+	for _i in range(10):  # another ~0.167s; total since 2nd harvest < 0.3s
+		await get_tree().physics_frame
+	assert_eq(
+		node.current_biomass,
+		after_second_harvest,
+		"a fresh harvest should reset the regen countdown (no premature regrowth)",
+	)
+
+
+func test_regen_emits_fully_regenerated_at_max() -> void:
+	var node := _create_node()
+	await get_tree().process_frame
+	node.regen_delay = 0.2
+	node.regen_rate = 100000.0
+	node.harvest(50)  # current 50
+	watch_signals(node)
+	for _i in range(60):
+		await get_tree().physics_frame
+	assert_eq(node.current_biomass, node.max_biomass, "precondition: node back to max")
+	assert_signal_emitted(node, "fully_regenerated")
+
+
+func test_regen_emits_biomass_changed() -> void:
+	var node := _create_node()
+	await get_tree().process_frame
+	node.regen_delay = 0.2
+	node.regen_rate = 1000.0
+	node.harvest(60)  # current 40
+	watch_signals(node)
+	for _i in range(40):
+		await get_tree().physics_frame
+	assert_signal_emitted(node, "biomass_changed")
+
+
+func test_depleted_node_regenerates_and_is_harvestable_again() -> void:
+	var node := _create_node()
+	await get_tree().process_frame
+	node.regen_delay = 0.2
+	node.regen_rate = 1000.0
+	node.harvest(100)  # fully depleted
+	assert_true(node.is_depleted(), "precondition: node depleted")
+	for _i in range(40):
+		await get_tree().physics_frame
+	assert_false(node.is_depleted(), "regrown node should no longer be depleted (AC5)")

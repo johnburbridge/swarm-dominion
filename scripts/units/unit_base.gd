@@ -136,6 +136,9 @@ func harvest_at(node: BiomassNode) -> void:
 	attack_stopped.emit()
 
 
+# True for the ENTIRE HARVESTING state, including the approach leg before
+# extraction begins. The harvest indicator keys on this, matching AC1
+# ("given a unit is in HARVESTING state").
 func is_harvesting() -> bool:
 	return _state == UnitState.HARVESTING
 

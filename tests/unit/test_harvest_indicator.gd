@@ -4,9 +4,9 @@ extends GutTest
 ## the HARVESTING state, disappearing when harvesting stops (command change,
 ## node depletion, or death).
 
-## Expected biomass-green pip color. The GREEN phase must match this literal
-## on the HarvestIndicator class (e.g. `const COLOR_HARVEST`). Defined locally
-## because the HarvestIndicator class_name does not exist yet.
+## Expected biomass-green pip color. Mirrors HarvestIndicator.COLOR_HARVEST,
+## which the component applies to the Pip in _ready. Kept as a local literal so
+## these tests do not depend on the class_name resolving.
 const COLOR_HARVEST_EXPECTED: Color = Color(0.3, 0.9, 0.2)
 
 var _drone_scene: PackedScene
@@ -83,6 +83,41 @@ func test_indicator_visible_while_harvesting() -> void:
 	var indicator := unit.get_node_or_null("HarvestIndicator")
 	assert_not_null(indicator, "Drone should have a HarvestIndicator child node")
 	assert_true(indicator.visible, "indicator should be visible while HARVESTING")
+
+
+func test_indicator_visible_during_approach_leg() -> void:
+	var node := _create_node(Vector2(300, 0))
+	var unit := _create_unit(1, Vector2(0, 0))
+	await get_tree().process_frame
+	unit.harvest_at(node)
+	await get_tree().process_frame
+	var to_node := unit.position.distance_to(node.position)
+	assert_gt(
+		to_node, node.harvest_radius, "precondition: unit should still be approaching the node"
+	)
+	assert_true(unit.is_harvesting(), "unit should be HARVESTING during the approach leg")
+	var indicator := unit.get_node_or_null("HarvestIndicator")
+	assert_not_null(indicator, "Drone should have a HarvestIndicator child node")
+	assert_true(indicator.visible, "indicator should be visible while approaching the node")
+
+
+func test_indicator_reappears_after_reharvest() -> void:
+	var node_a := _create_node(Vector2(0, 0))
+	var node_b := _create_node(Vector2(1000, 1000))
+	var unit := _create_unit(1, Vector2(0, 0))
+	await get_tree().process_frame
+	unit.harvest_at(node_a)
+	await get_tree().process_frame
+	var indicator := unit.get_node_or_null("HarvestIndicator")
+	assert_not_null(indicator, "Drone should have a HarvestIndicator child node")
+	assert_true(indicator.visible, "indicator should be visible while harvesting the first node")
+	unit.move_to(Vector2(400, 0))
+	await get_tree().process_frame
+	assert_false(indicator.visible, "indicator should hide when the harvest is cancelled")
+	unit.position = node_b.position
+	unit.harvest_at(node_b)
+	await get_tree().process_frame
+	assert_true(indicator.visible, "indicator should reappear when harvesting resumes")
 
 
 func test_pip_color_is_biomass_green() -> void:

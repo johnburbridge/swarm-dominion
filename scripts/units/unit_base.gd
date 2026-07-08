@@ -6,7 +6,7 @@ signal health_changed(current_health: int, max_health: int)
 signal attack_started(target: Node)
 signal attack_stopped
 
-enum UnitState { IDLE, MOVING, ATTACKING, ATTACK_MOVING, ENGAGING, DEAD }
+enum UnitState { IDLE, MOVING, ATTACKING, ATTACK_MOVING, ENGAGING, HARVESTING, DEAD }
 
 ## Threshold distance to consider "arrived" at target
 const ARRIVAL_THRESHOLD: float = 5.0
@@ -21,6 +21,7 @@ var current_health: int = 1
 var damage: int = 0
 var attack_speed: float = 1.0
 var attack_range: float = 0.0
+var harvest_speed: float = 0.0
 var _state: UnitState = UnitState.IDLE
 var _has_attack_move_destination: bool = false
 var _is_dead: bool:
@@ -41,6 +42,8 @@ var _enemies_in_range: Array[UnitBase] = []
 var _attack_area: Area2D = null
 var _engage_target: UnitBase = null
 var _engage_offset: Vector2 = Vector2.ZERO
+var _harvest_target: BiomassNode = null
+var _harvest_progress: float = 0.0
 var _selection_circle: Sprite2D = null
 
 @onready var _sprite: AnimatedSprite2D = $AnimatedSprite2D
@@ -69,6 +72,8 @@ func _physics_process(delta: float) -> void:
 			_process_attack_moving()
 		UnitState.ENGAGING:
 			_process_engaging()
+		UnitState.HARVESTING:
+			_process_harvesting(delta)
 		UnitState.DEAD:
 			pass
 
@@ -88,12 +93,9 @@ func move_to(target: Vector2) -> void:
 		return
 	if position.distance_to(target) <= ARRIVAL_THRESHOLD:
 		return
+	_clear_command_targets()
 	_target_position = target
 	_state = UnitState.MOVING
-	_attack_target = null
-	_has_attack_move_destination = false
-	_engage_target = null
-	_engage_offset = Vector2.ZERO
 	attack_stopped.emit()
 
 
@@ -102,12 +104,10 @@ func attack_move_to(target: Vector2) -> void:
 		return
 	if position.distance_to(target) <= ARRIVAL_THRESHOLD:
 		return
+	_clear_command_targets()
+	_has_attack_move_destination = true
 	_target_position = target
 	_state = UnitState.ATTACK_MOVING
-	_attack_target = null
-	_has_attack_move_destination = true
-	_engage_target = null
-	_engage_offset = Vector2.ZERO
 	attack_stopped.emit()
 
 
@@ -116,12 +116,36 @@ func engage_unit(target: UnitBase, approach_offset: Vector2 = Vector2.ZERO) -> v
 		return
 	if not _is_valid_target(target):
 		return
+	_clear_command_targets()
 	_engage_target = target
 	_engage_offset = approach_offset
-	_attack_target = null
-	_has_attack_move_destination = false
 	_state = UnitState.ENGAGING
 	attack_stopped.emit()
+
+
+func harvest_at(node: BiomassNode) -> void:
+	if _state == UnitState.DEAD:
+		return
+	if node == null or node.is_depleted():
+		return
+	if harvest_speed <= 0.0:
+		return
+	_clear_command_targets()
+	_harvest_target = node
+	_state = UnitState.HARVESTING
+	attack_stopped.emit()
+
+
+## Resets all command-target state to defaults. A command method calls this
+## before setting its own target (e.g. engage_unit then sets _engage_target),
+## so every issued command starts from a clean slate.
+func _clear_command_targets() -> void:
+	_attack_target = null
+	_has_attack_move_destination = false
+	_engage_target = null
+	_engage_offset = Vector2.ZERO
+	_harvest_target = null
+	_harvest_progress = 0.0
 
 
 func take_damage(amount: int) -> void:
@@ -140,6 +164,8 @@ func _die() -> void:
 	_attack_target = null
 	_engage_target = null
 	_engage_offset = Vector2.ZERO
+	_harvest_target = null
+	_harvest_progress = 0.0
 	_enemies_in_range.clear()
 	if _attack_area != null:
 		var shape_node := _attack_area.get_child(0) as CollisionShape2D
@@ -176,6 +202,7 @@ func _load_stats() -> void:
 	attack_speed = unit_stats.get("attack_speed", 1.0)
 	move_speed = unit_stats.get("move_speed", move_speed)
 	attack_range = unit_stats.get("attack_range", 0.0)
+	harvest_speed = float(unit_stats.get("harvest_speed", 0))
 	health_changed.emit(current_health, max_health)
 
 
@@ -276,6 +303,30 @@ func _process_engaging() -> void:
 	move_and_slide()
 
 
+func _process_harvesting(delta: float) -> void:
+	if not is_instance_valid(_harvest_target) or _harvest_target.is_depleted():
+		_harvest_target = null
+		_harvest_progress = 0.0
+		_state = UnitState.IDLE
+		return
+	var to_node := _harvest_target.global_position - global_position
+	if to_node.length() > _harvest_target.harvest_radius:
+		var direction := to_node.normalized()
+		velocity = direction * move_speed
+		_play_walk_animation(direction)
+		move_and_slide()
+		return
+	velocity = Vector2.ZERO
+	_update_animation(Vector2.ZERO)
+	_harvest_progress += harvest_speed * delta
+	var whole := int(_harvest_progress)
+	if whole > 0:
+		var got := _harvest_target.harvest(whole)
+		if got > 0:
+			ResourceManager.add_resources(team_id, got)
+		_harvest_progress -= float(got)
+
+
 func _try_acquire_target() -> void:
 	var nearest: UnitBase = null
 	var nearest_dist := INF
@@ -343,10 +394,17 @@ func _on_unit_died(unit: Node) -> void:
 
 func _update_animation(direction: Vector2 = Vector2.ZERO) -> void:
 	if _is_moving:
-		if abs(direction.x) > 0.1:
-			_sprite.flip_h = direction.x < 0
-		if _sprite.animation != "walk":
-			_sprite.play("walk")
+		_play_walk_animation(direction)
 	else:
 		if _sprite.animation != "idle":
 			_sprite.play("idle")
+
+
+## Plays the walk animation and flips the sprite to face the movement
+## direction. Used by moving states and by the HARVESTING approach leg
+## (which is not counted by `_is_moving` but still slides toward the node).
+func _play_walk_animation(direction: Vector2) -> void:
+	if abs(direction.x) > 0.1:
+		_sprite.flip_h = direction.x < 0
+	if _sprite.animation != "walk":
+		_sprite.play("walk")

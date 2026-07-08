@@ -88,3 +88,57 @@ func test_is_depleted_when_zero() -> void:
 	await get_tree().process_frame
 	node.current_biomass = 0
 	assert_true(node.is_depleted(), "should be depleted when biomass is 0")
+
+
+# --- Harvest (SPI-1385) ---
+
+
+func test_harvest_extracts_requested_amount_from_full_node() -> void:
+	var node := _create_node()
+	await get_tree().process_frame
+	var extracted := node.harvest(30)
+	assert_eq(extracted, 30, "should extract the requested amount")
+	assert_eq(node.current_biomass, 70, "should decrement current_biomass by amount")
+
+
+func test_harvest_clamps_to_remaining_biomass() -> void:
+	var node := _create_node()
+	await get_tree().process_frame
+	node.current_biomass = 20
+	var extracted := node.harvest(50)
+	assert_eq(extracted, 20, "should return only the remaining amount")
+	assert_eq(node.current_biomass, 0, "should leave current_biomass at 0")
+
+
+func test_harvest_emits_biomass_changed_with_params() -> void:
+	var node := _create_node()
+	await get_tree().process_frame
+	watch_signals(node)
+	node.harvest(25)
+	assert_signal_emitted_with_parameters(node, "biomass_changed", [75, 100])
+
+
+func test_harvest_that_empties_node_emits_depleted() -> void:
+	var node := _create_node()
+	await get_tree().process_frame
+	watch_signals(node)
+	node.harvest(100)
+	assert_signal_emitted(node, "biomass_depleted")
+
+
+func test_harvest_zero_returns_zero_and_emits_nothing() -> void:
+	var node := _create_node()
+	await get_tree().process_frame
+	watch_signals(node)
+	var extracted := node.harvest(0)
+	assert_eq(extracted, 0, "harvest(0) should return 0")
+	assert_signal_not_emitted(node, "biomass_changed")
+	assert_signal_not_emitted(node, "biomass_depleted")
+
+
+func test_harvest_on_depleted_node_returns_zero() -> void:
+	var node := _create_node()
+	await get_tree().process_frame
+	node.current_biomass = 0
+	var extracted := node.harvest(10)
+	assert_eq(extracted, 0, "harvesting a depleted node should return 0")

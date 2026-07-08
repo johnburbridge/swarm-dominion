@@ -29,6 +29,17 @@ func is_depleted() -> bool:
 	return current_biomass <= 0
 
 
+func harvest(amount: int) -> int:
+	var extracted: int = min(amount, current_biomass)
+	if extracted <= 0:
+		return 0
+	current_biomass -= extracted
+	biomass_changed.emit(current_biomass, max_biomass)
+	if current_biomass <= 0:
+		biomass_depleted.emit()
+	return extracted
+
+
 func _setup_harvest_area() -> void:
 	var area := Area2D.new()
 	area.name = "HarvestArea"

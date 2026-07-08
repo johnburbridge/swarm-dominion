@@ -75,8 +75,11 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup and contribution gu
 
 | Milestone | Description | Status |
 |-----------|-------------|--------|
-| M0 | Hello Godot - Basic unit movement | Planned |
-| M1-M8 | Core gameplay systems | Planned |
+| M0 | Hello Godot - Basic unit movement | Complete |
+| M1 | Basic Combat - Health, attacks, death | Complete |
+| M2 | Selection & Control - Select, group, attack-move | Complete |
+| M3 | Resource Gathering - Harvest biomass from nodes | In Progress |
+| M4-M8 | Mothers, supply, upgrades, control points, fog of war | Planned |
 | M9-M12 | AI and multiplayer | Planned |
 | M13-M16 | Polish and release | Planned |
 

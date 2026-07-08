@@ -136,6 +136,13 @@ func harvest_at(node: BiomassNode) -> void:
 	attack_stopped.emit()
 
 
+# True for the ENTIRE HARVESTING state, including the approach leg before
+# extraction begins. The harvest indicator keys on this, matching AC1
+# ("given a unit is in HARVESTING state").
+func is_harvesting() -> bool:
+	return _state == UnitState.HARVESTING
+
+
 ## Resets all command-target state to defaults. A command method calls this
 ## before setting its own target (e.g. engage_unit then sets _engage_target),
 ## so every issued command starts from a clean slate.

@@ -7,6 +7,8 @@ const BiomassNodeScene = preload("res://scenes/resources/biomass_node.tscn")
 const PLAYER_TEAM_ID: int = 1
 const DRAG_THRESHOLD: float = 4.0
 const DOUBLE_TAP_THRESHOLD: float = 0.3
+const UNIT_COLLISION_MASK: int = 1
+const BIOMASS_NODE_COLLISION_MASK: int = 4
 
 var _is_select_pressed: bool = false
 var _select_press_position: Vector2 = Vector2.ZERO
@@ -100,7 +102,7 @@ func _handle_click_select() -> void:
 	var space_state := get_world_2d().direct_space_state
 	var params := PhysicsPointQueryParameters2D.new()
 	params.position = click_pos
-	params.collision_mask = 1
+	params.collision_mask = UNIT_COLLISION_MASK
 	var results := space_state.intersect_point(params)
 
 	for result in results:
@@ -133,29 +135,53 @@ func _recall_group(index: int) -> void:
 
 
 func _handle_command() -> void:
-	var click_pos := get_global_mouse_position()
 	var selected := SelectionManager.get_selected_units()
 	if selected.is_empty():
 		return
+	_dispatch_command_at(get_global_mouse_position(), selected)
 
+
+func _dispatch_command_at(click_pos: Vector2, selected: Array[UnitBase]) -> void:
 	var enemy := _get_enemy_at_position(click_pos)
 	if enemy != null:
 		_issue_engage(enemy, selected)
-	else:
+		return
+	# Only non-depleted nodes reach here (see _get_biomass_node_at_position),
+	# so a right-click on a depleted node falls through to the move fallback below.
+	var node := _get_biomass_node_at_position(click_pos)
+	if node != null:
 		for unit in selected:
 			if is_instance_valid(unit):
-				unit.move_to(click_pos)
+				unit.harvest_at(node)
+		return
+	for unit in selected:
+		if is_instance_valid(unit):
+			unit.move_to(click_pos)
 
 
 func _get_enemy_at_position(pos: Vector2) -> UnitBase:
 	var space_state := get_world_2d().direct_space_state
 	var params := PhysicsPointQueryParameters2D.new()
 	params.position = pos
-	params.collision_mask = 1
+	params.collision_mask = UNIT_COLLISION_MASK
 	var results := space_state.intersect_point(params)
 	for result in results:
 		var collider = result["collider"]
 		if collider is UnitBase and collider.team_id != PLAYER_TEAM_ID and not collider._is_dead:
+			return collider
+	return null
+
+
+func _get_biomass_node_at_position(pos: Vector2) -> BiomassNode:
+	# BIOMASS_NODE_COLLISION_MASK targets the biomass-node physics layer (layer 3).
+	var space_state := get_world_2d().direct_space_state
+	var params := PhysicsPointQueryParameters2D.new()
+	params.position = pos
+	params.collision_mask = BIOMASS_NODE_COLLISION_MASK
+	var results := space_state.intersect_point(params)
+	for result in results:
+		var collider = result["collider"]
+		if collider is BiomassNode and not collider.is_depleted():
 			return collider
 	return null
 

@@ -75,6 +75,20 @@ func test_label_updates_when_player_resources_change() -> void:
 	assert_eq(label.text, "Biomass: 10", "counter should update to 'Biomass: 10' after add")
 
 
+func test_label_follows_decrease_on_spend() -> void:
+	var counter := await _instantiate_counter()
+	var label := counter.get_node_or_null("Label")
+	assert_not_null(label, "ResourceCounter should have a Label child")
+
+	ResourceManager.add_resources(PLAYER_TEAM, 50)
+	assert_eq(label.text, "Biomass: 50", "counter should read 'Biomass: 50' after add")
+
+	ResourceManager.spend_resources(PLAYER_TEAM, 20)
+	assert_eq(
+		label.text, "Biomass: 30", "counter should follow decrease to 'Biomass: 30' after spend"
+	)
+
+
 # --- AC3: ignores other teams ---
 
 

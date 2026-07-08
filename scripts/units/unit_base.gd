@@ -128,6 +128,8 @@ func harvest_at(node: BiomassNode) -> void:
 		return
 	if node == null or node.is_depleted():
 		return
+	if harvest_speed <= 0.0:
+		return
 	_clear_command_targets()
 	_harvest_target = node
 	_state = UnitState.HARVESTING
@@ -302,7 +304,7 @@ func _process_engaging() -> void:
 
 
 func _process_harvesting(delta: float) -> void:
-	if _harvest_target == null or _harvest_target.is_depleted():
+	if not is_instance_valid(_harvest_target) or _harvest_target.is_depleted():
 		_harvest_target = null
 		_harvest_progress = 0.0
 		_state = UnitState.IDLE
@@ -311,7 +313,7 @@ func _process_harvesting(delta: float) -> void:
 	if to_node.length() > _harvest_target.harvest_radius:
 		var direction := to_node.normalized()
 		velocity = direction * move_speed
-		_update_animation(direction)
+		_play_walk_animation(direction)
 		move_and_slide()
 		return
 	velocity = Vector2.ZERO
@@ -392,10 +394,17 @@ func _on_unit_died(unit: Node) -> void:
 
 func _update_animation(direction: Vector2 = Vector2.ZERO) -> void:
 	if _is_moving:
-		if abs(direction.x) > 0.1:
-			_sprite.flip_h = direction.x < 0
-		if _sprite.animation != "walk":
-			_sprite.play("walk")
+		_play_walk_animation(direction)
 	else:
 		if _sprite.animation != "idle":
 			_sprite.play("idle")
+
+
+## Plays the walk animation and flips the sprite to face the movement
+## direction. Used by moving states and by the HARVESTING approach leg
+## (which is not counted by `_is_moving` but still slides toward the node).
+func _play_walk_animation(direction: Vector2) -> void:
+	if abs(direction.x) > 0.1:
+		_sprite.flip_h = direction.x < 0
+	if _sprite.animation != "walk":
+		_sprite.play("walk")

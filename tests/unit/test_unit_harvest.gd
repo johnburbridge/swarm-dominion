@@ -97,7 +97,6 @@ func test_no_auto_attack_while_harvesting() -> void:
 		await get_tree().physics_frame
 	assert_eq(unit._state, UnitBase.UnitState.HARVESTING, "should stay HARVESTING, not ATTACKING")
 	assert_null(unit._attack_target, "should not acquire an attack target while harvesting")
-	enemy.free()
 
 
 # --- Command cancellation ---
@@ -175,3 +174,44 @@ func test_depleted_node_ends_harvest() -> void:
 	assert_true(node.is_depleted(), "precondition: node should be depleted")
 	assert_eq(unit._state, UnitBase.UnitState.IDLE, "should return to IDLE after depletion")
 	assert_null(unit._harvest_target, "should clear harvest target after depletion")
+
+
+# --- Non-harvesters ---
+
+
+func test_zero_harvest_speed_does_not_harvest() -> void:
+	var node := _create_node(Vector2(0, 0))
+	var unit := _create_unit(1, Vector2(0, 0))
+	await get_tree().process_frame
+	unit.harvest_speed = 0.0
+	unit.harvest_at(node)
+	for _i in range(10):
+		await get_tree().physics_frame
+	assert_ne(
+		unit._state,
+		UnitBase.UnitState.HARVESTING,
+		"zero-harvest-speed unit should not enter HARVESTING"
+	)
+	assert_eq(ResourceManager.get_resources(1), 0, "no biomass should be gathered")
+	assert_eq(node.current_biomass, node.max_biomass, "node should not be decremented")
+
+
+# --- Re-harvest after cancel ---
+
+
+func test_can_reharvest_after_cancel() -> void:
+	var node_a := _create_node(Vector2(0, 0))
+	var node_b := _create_node(Vector2(1000, 1000))
+	var unit := _create_unit(1, Vector2(0, 0))
+	await get_tree().process_frame
+	unit.harvest_speed = 5
+	unit.harvest_at(node_a)
+	unit.move_to(Vector2(400, 0))
+	assert_null(unit._harvest_target, "move_to should clear harvest target")
+	unit.position = node_b.position
+	unit.harvest_at(node_b)
+	for _i in range(65):
+		await get_tree().physics_frame
+	assert_eq(unit._state, UnitBase.UnitState.HARVESTING, "should be HARVESTING the second node")
+	assert_eq(unit._harvest_target, node_b, "should target the second node")
+	assert_gt(ResourceManager.get_resources(1), 0, "biomass should accrue again after re-harvest")

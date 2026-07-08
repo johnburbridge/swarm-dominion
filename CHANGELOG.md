@@ -42,6 +42,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - HARVESTING state and gather behavior, with a `BiomassNode.harvest()` extract API (SPI-1385)
 - Right-click a biomass node to dispatch a harvest command (SPI-1386)
 - Resource counter UI on the HUD (SPI-1384)
+- Harvest indicator: a biomass-green pip shown above units while harvesting (SPI-1387)
 
 ### Fixed
 - Camera movement fix (SPI-1380)

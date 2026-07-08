@@ -1,0 +1,18 @@
+[gd_scene load_steps=2 format=3 uid="uid://resource_counter_scene"]
+
+[ext_resource type="Script" path="res://scripts/ui/resource_counter.gd" id="1_script"]
+
+[node name="ResourceCounter" type="Control"]
+layout_mode = 3
+anchors_preset = 0
+offset_left = 10.0
+offset_top = 40.0
+offset_right = 400.0
+offset_bottom = 80.0
+script = ExtResource("1_script")
+
+[node name="Label" type="Label" parent="."]
+layout_mode = 0
+offset_right = 390.0
+offset_bottom = 40.0
+text = "Biomass: 0"

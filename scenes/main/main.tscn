@@ -1,9 +1,10 @@
-[gd_scene load_steps=5 format=3 uid="uid://main_scene"]
+[gd_scene load_steps=6 format=3 uid="uid://main_scene"]
 
 [ext_resource type="Script" path="res://scripts/main.gd" id="1_main"]
 [ext_resource type="Texture2D" path="res://assets/sprites/grid_tile.png" id="2_grid"]
 [ext_resource type="Script" path="res://scripts/ui/selection_box.gd" id="3_selbox"]
 [ext_resource type="Script" path="res://scripts/ui/minimap.gd" id="4_minimap"]
+[ext_resource type="PackedScene" path="res://scenes/ui/resource_counter.tscn" id="5_rescounter"]
 
 [node name="Main" type="Node2D"]
 script = ExtResource("1_main")
@@ -54,3 +55,5 @@ offset_top = 10.0
 offset_right = 400.0
 offset_bottom = 50.0
 text = "Swarm Dominion - Milestone 0"
+
+[node name="ResourceCounter" parent="UI" instance=ExtResource("5_rescounter")]

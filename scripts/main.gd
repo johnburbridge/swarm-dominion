@@ -133,18 +133,26 @@ func _recall_group(index: int) -> void:
 
 
 func _handle_command() -> void:
-	var click_pos := get_global_mouse_position()
 	var selected := SelectionManager.get_selected_units()
 	if selected.is_empty():
 		return
+	_dispatch_command_at(get_global_mouse_position(), selected)
 
+
+func _dispatch_command_at(click_pos: Vector2, selected: Array[UnitBase]) -> void:
 	var enemy := _get_enemy_at_position(click_pos)
 	if enemy != null:
 		_issue_engage(enemy, selected)
-	else:
+		return
+	var node := _get_biomass_node_at_position(click_pos)
+	if node != null:
 		for unit in selected:
 			if is_instance_valid(unit):
-				unit.move_to(click_pos)
+				unit.harvest_at(node)
+		return
+	for unit in selected:
+		if is_instance_valid(unit):
+			unit.move_to(click_pos)
 
 
 func _get_enemy_at_position(pos: Vector2) -> UnitBase:
@@ -156,6 +164,20 @@ func _get_enemy_at_position(pos: Vector2) -> UnitBase:
 	for result in results:
 		var collider = result["collider"]
 		if collider is UnitBase and collider.team_id != PLAYER_TEAM_ID and not collider._is_dead:
+			return collider
+	return null
+
+
+func _get_biomass_node_at_position(pos: Vector2) -> BiomassNode:
+	# collision_mask = 4 targets the biomass-node physics layer (layer 3).
+	var space_state := get_world_2d().direct_space_state
+	var params := PhysicsPointQueryParameters2D.new()
+	params.position = pos
+	params.collision_mask = 4
+	var results := space_state.intersect_point(params)
+	for result in results:
+		var collider = result["collider"]
+		if collider is BiomassNode:
 			return collider
 	return null
 

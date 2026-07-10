@@ -282,3 +282,41 @@ func test_display_radius_clamps_out_of_range() -> void:
 	await get_tree().process_frame
 	assert_eq(node.display_radius_for_ratio(2.0), 20.0, "ratio > 1 clamps to max radius")
 	assert_eq(node.display_radius_for_ratio(-1.0), 6.0, "ratio < 0 clamps to the floor")
+
+
+# --- Regen guard hardening (SPI-1418) ---
+
+
+func test_full_node_disables_physics_processing_after_ready() -> void:
+	var node := _create_node()
+	await get_tree().process_frame
+	assert_false(node.is_physics_processing(), "a full node should not poll for regen")
+
+
+func test_node_disables_physics_processing_after_full_regen() -> void:
+	var node := _create_node()
+	await get_tree().process_frame
+	node.regen_delay = 0.1
+	node.regen_rate = 100000.0
+	node.harvest(50)  # current 50
+	for _i in range(60):
+		await get_tree().physics_frame
+	assert_eq(node.current_biomass, node.max_biomass, "precondition: node fully regrown")
+	assert_false(
+		node.is_physics_processing(), "should stop polling once fully regenerated (return to rest)"
+	)
+
+
+func test_nonpositive_regen_rate_never_regrows_and_stops_processing() -> void:
+	var node := _create_node()
+	await get_tree().process_frame
+	node.regen_rate = 0.0
+	node.regen_delay = 0.1
+	node.harvest(50)  # current 50
+	for _i in range(20):
+		await get_tree().physics_frame
+	assert_eq(node.current_biomass, 50, "a non-positive regen_rate should never regrow the node")
+	assert_false(
+		node.is_physics_processing(),
+		"a non-positive regen_rate should not poll forever (inert node)",
+	)

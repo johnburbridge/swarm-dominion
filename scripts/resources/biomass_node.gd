@@ -64,6 +64,9 @@ func harvest(amount: int) -> int:
 func _physics_process(delta: float) -> void:
 	if current_biomass >= max_biomass:
 		return
+	if regen_rate <= 0.0:
+		set_physics_process(false)
+		return
 	_time_since_harvest += delta
 	if _time_since_harvest < regen_delay:
 		return

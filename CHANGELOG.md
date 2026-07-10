@@ -45,6 +45,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Harvest indicator: a biomass-green pip shown above units while harvesting (SPI-1387)
 - Biomass nodes regenerate after a harvest lull and shrink/dim to reflect remaining biomass (SPI-1388)
 
+**Milestone 4 - Mothers & Spawning**
+- Mother unit: a large, slow, high-HP command unit that cannot harvest, cannot auto-attack, and is never auto-targeted by enemies, but is selectable and movable (SPI-1421)
+
 ### Fixed
 - Camera movement fix (SPI-1380)
 

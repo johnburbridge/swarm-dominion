@@ -115,3 +115,28 @@ func test_mother_selection_toggles_circle() -> void:
 	assert_true(mother._selection_circle.visible, "selection circle should show when selected")
 	mother.set_selected(false)
 	assert_false(mother._selection_circle.visible, "selection circle should hide when deselected")
+
+
+# --- Auto-target exclusion (the shared-code guard) ---
+
+
+func test_enemy_does_not_enlist_mother_as_target() -> void:
+	var drone := _create_drone(1, Vector2.ZERO)
+	var mother := _create_mother(2, Vector2(30, 0))
+	await get_tree().process_frame
+	drone._on_body_entered_attack_range(mother)
+	assert_does_not_have(
+		drone._enemies_in_range, mother, "an enemy Mother must never be enlisted as a target"
+	)
+
+
+func test_enemy_does_enlist_a_normal_enemy_drone() -> void:
+	var drone := _create_drone(1, Vector2.ZERO)
+	var enemy := _create_drone(2, Vector2(30, 0))
+	await get_tree().process_frame
+	drone._on_body_entered_attack_range(enemy)
+	assert_has(
+		drone._enemies_in_range,
+		enemy,
+		"a normal enemy drone must still be enlisted (guard is specific)"
+	)

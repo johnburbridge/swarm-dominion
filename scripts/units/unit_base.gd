@@ -383,7 +383,13 @@ func _get_attack_interval() -> float:
 
 
 func _on_body_entered_attack_range(body: Node2D) -> void:
-	if body is UnitBase and body != self and body.team_id != team_id and not body._is_dead:
+	if (
+		body is UnitBase
+		and body != self
+		and body.team_id != team_id
+		and not body._is_dead
+		and body.is_auto_targetable()
+	):
 		_enemies_in_range.append(body)
 
 

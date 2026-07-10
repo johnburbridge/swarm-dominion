@@ -143,6 +143,13 @@ func is_harvesting() -> bool:
 	return _state == UnitState.HARVESTING
 
 
+# Whether enemies may pick this unit as an automatic attack target. Mothers
+# override this to false; they must be targeted manually (future work). The
+# guard that consumes this lives in _on_body_entered_attack_range (Task 2).
+func is_auto_targetable() -> bool:
+	return true
+
+
 ## Resets all command-target state to defaults. A command method calls this
 ## before setting its own target (e.g. engage_unit then sets _engage_target),
 ## so every issued command starts from a clean slate.
@@ -376,7 +383,13 @@ func _get_attack_interval() -> float:
 
 
 func _on_body_entered_attack_range(body: Node2D) -> void:
-	if body is UnitBase and body != self and body.team_id != team_id and not body._is_dead:
+	if (
+		body is UnitBase
+		and body != self
+		and body.team_id != team_id
+		and not body._is_dead
+		and body.is_auto_targetable()
+	):
 		_enemies_in_range.append(body)
 
 

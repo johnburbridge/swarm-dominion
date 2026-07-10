@@ -4,6 +4,7 @@ extends Node2D
 
 const DroneScene = preload("res://scenes/units/drone.tscn")
 const BiomassNodeScene = preload("res://scenes/resources/biomass_node.tscn")
+const MotherScene = preload("res://scenes/units/mother.tscn")
 const PLAYER_TEAM_ID: int = 1
 const DRAG_THRESHOLD: float = 4.0
 const DOUBLE_TAP_THRESHOLD: float = 0.3
@@ -241,3 +242,10 @@ func _spawn_test_units() -> void:
 		drone.modulate = Color(1.0, 0.7, 0.7)
 		add_child(drone)
 	print("Spawned %d enemy drones" % enemy_positions.size())
+
+	var mother := MotherScene.instantiate()
+	mother.team_id = 1
+	mother.position = Vector2(760, 400)
+	mother.modulate = Color(0.6, 1.0, 0.6)
+	add_child(mother)
+	print("Spawned player Mother")

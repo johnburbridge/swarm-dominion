@@ -47,6 +47,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 **Milestone 4 - Mothers & Spawning**
 - Mother unit: a large, slow, high-HP command unit that cannot harvest, cannot auto-attack, and is never auto-targeted by enemies, but is selectable and movable (SPI-1421)
+- Mother spawning: a Mother converts stored biomass into a new Level 1 Drone via `spawn_unit()`, placed clear of its body on a deterministic ring and announced on the EventBus (SPI-1422)
 
 ### Fixed
 - Camera movement fix (SPI-1380)

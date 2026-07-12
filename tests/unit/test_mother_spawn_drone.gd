@@ -68,6 +68,8 @@ func test_spawn_emits_unit_spawned() -> void:
 	var drone := mother.spawn_unit()
 	autofree(drone)
 	assert_signal_emitted(EventBus, "unit_spawned", "spawn should announce via EventBus")
+	# The announced unit must be the spawned Drone (not some other node).
+	assert_signal_emitted_with_parameters(EventBus, "unit_spawned", [drone])
 
 
 func test_spawned_drone_clear_of_mother_and_controllable() -> void:

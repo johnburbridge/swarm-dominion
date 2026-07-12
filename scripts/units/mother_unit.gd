@@ -13,7 +13,9 @@ const DroneScene := preload("res://scenes/units/drone.tscn")
 ## never overlaps the Mother.
 const SPAWN_RADIUS: float = 60.0
 ## Angular step between successive spawns so repeated Drones fan out around the
-## Mother instead of stacking. Uses a plain counter (no randf) for lockstep safety.
+## Mother instead of stacking. Uses a plain counter (no RNG). (Bit-exact
+## cross-platform determinism of the sin/cos placement is a separate, codebase-wide
+## networking concern for M11/M12, not addressed here.)
 const SPAWN_ANGLE_STEP: float = TAU / 8.0
 
 ## Biomass charged per Drone; loaded from data/upgrade_costs.json in _ready.
@@ -45,6 +47,8 @@ func spawn_unit() -> UnitBase:
 		return null
 	var drone := DroneScene.instantiate() as UnitBase
 	drone.team_id = team_id
+	# The ring wraps every 8 spawns (angle returns to 0), so the 9th Drone stacks
+	# on the 1st. Rally points (SPI-1424) are the intended dispersal mechanism.
 	var angle := _spawn_count * SPAWN_ANGLE_STEP
 	drone.position = position + Vector2.from_angle(angle) * SPAWN_RADIUS
 	_spawn_count += 1

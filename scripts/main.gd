@@ -17,6 +17,7 @@ var _is_dragging: bool = false
 var _attack_move_pending: bool = false
 var _last_recall_group: int = -1
 var _last_recall_time: float = 0.0
+var _player_mother: MotherUnit = null
 
 @onready var _camera: Camera2D = $Camera2D
 @onready var _selection_box: SelectionBox = $UI/SelectionBox
@@ -48,6 +49,11 @@ func _unhandled_input(event: InputEvent) -> void:
 				SelectionManager.assign_group(group_index)
 			else:
 				_recall_group(group_index)
+		elif key == KEY_B:
+			# TEMP (SPI-1422): debug spawn from the player Mother; replaced by
+			# the spawn button in SPI-1423.
+			if is_instance_valid(_player_mother):
+				_player_mother.spawn_unit()
 	elif event.is_action_pressed("command"):
 		_handle_command()
 
@@ -248,4 +254,5 @@ func _spawn_test_units() -> void:
 	mother.position = Vector2(760, 400)
 	mother.modulate = Color(0.6, 1.0, 0.6)
 	add_child(mother)
+	_player_mother = mother
 	print("Spawned player Mother")

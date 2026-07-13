@@ -1,0 +1,28 @@
+[gd_scene load_steps=2 format=3 uid="uid://spawn_panel_scene"]
+
+[ext_resource type="Script" path="res://scripts/ui/spawn_panel.gd" id="1_script"]
+
+[node name="SpawnPanel" type="Control"]
+layout_mode = 3
+anchors_preset = 2
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_left = 10.0
+offset_top = -60.0
+offset_right = 200.0
+offset_bottom = -10.0
+grow_vertical = 0
+mouse_filter = 2
+visible = false
+script = ExtResource("1_script")
+
+[node name="SpawnButton" type="Button" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+custom_minimum_size = Vector2(180, 40)
+mouse_filter = 0
+text = "Spawn Drone"

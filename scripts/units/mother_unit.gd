@@ -39,6 +39,11 @@ func is_auto_targetable() -> bool:
 	return false
 
 
+## The biomass cost to spawn one Drone from this Mother (loaded from data).
+func get_spawn_cost() -> int:
+	return _spawn_cost
+
+
 ## Convert _spawn_cost biomass into a new Level 1 Drone on this Mother's team,
 ## placed clear of the Mother's body, and announce it. Returns the new Drone, or
 ## null if the team cannot afford it (no biomass spent, nothing created).

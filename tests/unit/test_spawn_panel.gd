@@ -12,12 +12,14 @@ const PLAYER_TEAM: int = 1
 var _panel_scene: PackedScene
 var _mother_scene: PackedScene
 var _drone_scene: PackedScene
+var _main_scene: PackedScene
 
 
 func before_all() -> void:
 	_panel_scene = load("res://scenes/ui/spawn_panel.tscn")
 	_mother_scene = load("res://scenes/units/mother.tscn")
 	_drone_scene = load("res://scenes/units/drone.tscn")
+	_main_scene = load("res://scenes/main/main.tscn")
 
 
 func before_each() -> void:
@@ -190,3 +192,13 @@ func test_mother_get_spawn_cost_returns_loaded_cost() -> void:
 	file.close()
 	var expected := int(json.data["spawn_costs"]["drone"]["biomass"])
 	assert_eq(mother.get_spawn_cost(), expected, "get_spawn_cost should return the loaded cost")
+
+
+func test_main_scene_has_spawn_panel_under_ui_hidden() -> void:
+	var main := _main_scene.instantiate()
+	add_child_autofree(main)
+	await get_tree().process_frame
+	var panel := main.get_node_or_null("UI/SpawnPanel") as Control
+	assert_not_null(panel, "main.tscn should have a SpawnPanel at UI/SpawnPanel")
+	if panel != null:
+		assert_false(panel.visible, "SpawnPanel should be hidden on load (no selection)")

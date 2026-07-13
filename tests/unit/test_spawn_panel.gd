@@ -106,6 +106,24 @@ func test_hidden_again_after_deselect() -> void:
 	assert_false(panel.visible, "panel should hide after deselect")
 
 
+func test_mixed_selection_tracks_the_mother() -> void:
+	var panel := await _instantiate_panel()
+	var drone := _make_drone(PLAYER_TEAM)
+	var mother := _make_mother(PLAYER_TEAM)
+	ResourceManager.add_resources(PLAYER_TEAM, 100)
+	var mixed: Array[UnitBase] = [drone, mother]
+	SelectionManager.select_units(mixed)
+	assert_true(panel.visible, "panel should be visible when a Mother is among the selection")
+	var button := panel.get_node_or_null("SpawnButton") as Button
+	assert_not_null(button, "SpawnButton should exist")
+	if button != null:
+		assert_eq(
+			button.text,
+			"Spawn Drone (%d)" % mother.get_spawn_cost(),
+			"panel should track the Mother's cost even in a mixed selection"
+		)
+
+
 # --- cost display ---
 
 

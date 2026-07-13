@@ -24,7 +24,7 @@ func _on_selection_changed(selected_units: Array[UnitBase]) -> void:
 
 
 func _on_resources_changed(team_id: int, _amount: int) -> void:
-	if visible and _mother != null and team_id == _mother.team_id:
+	if visible and is_instance_valid(_mother) and team_id == _mother.team_id:
 		_refresh()
 
 

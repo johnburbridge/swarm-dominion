@@ -85,3 +85,25 @@ func test_from_file_missing_returns_null() -> void:
 	var def := MapDefinition.from_file("res://data/map_definitions/does_not_exist.json")
 	assert_null(def, "missing file returns null")
 	assert_engine_error(1, "expected warning for the missing file")
+
+
+func test_from_file_parse_error_returns_null() -> void:
+	var path := "user://test_map_definition_malformed.json"
+	var file := FileAccess.open(path, FileAccess.WRITE)
+	file.store_string("{ not valid json")
+	file.close()
+	var def := MapDefinition.from_file(path)
+	assert_null(def, "unparseable JSON returns null")
+	assert_engine_error(1, "expected warning for unparseable JSON")
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
+
+
+func test_from_file_non_object_root_returns_null() -> void:
+	var path := "user://test_map_definition_non_object_root.json"
+	var file := FileAccess.open(path, FileAccess.WRITE)
+	file.store_string("[1, 2, 3]")
+	file.close()
+	var def := MapDefinition.from_file(path)
+	assert_null(def, "non-object JSON root returns null")
+	assert_engine_error(1, "expected warning for non-object root")
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(path))

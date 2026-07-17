@@ -39,10 +39,38 @@ static func from_dict(data: Dictionary) -> MapDefinition:
 	var def := MapDefinition.new()
 	def.map_name = String(data.get("name", ""))
 	def.bounds = _parse_bounds(data.get("bounds", {}))
-	def.spawn_points = _parse_spawn_points(data.get("spawn_points", []))
-	def.biomass_nodes = _parse_biomass_nodes(data.get("biomass_nodes", []))
-	def.control_points = _parse_control_points(data.get("control_points", []))
-	def.units = _parse_units(data.get("units", []))
+	def.spawn_points = _parse_entries(
+		data.get("spawn_points", []),
+		"spawn_point",
+		func(entry: Dictionary, pos: Variant) -> Dictionary:
+			return {"team_id": int(entry.get("team_id", 0)), "position": pos}
+	)
+	def.biomass_nodes = _parse_entries(
+		data.get("biomass_nodes", []),
+		"biomass_node",
+		func(entry: Dictionary, pos: Variant) -> Dictionary: return {"position": pos}
+	)
+	def.control_points = _parse_entries(
+		data.get("control_points", []),
+		"control_point",
+		func(entry: Dictionary, pos: Variant) -> Dictionary:
+			return {
+				"id": String(entry.get("id", "")),
+				"position": pos,
+				"capture_radius": float(entry.get("capture_radius", DEFAULT_CAPTURE_RADIUS)),
+				"vp_weight": int(entry.get("vp_weight", DEFAULT_VP_WEIGHT)),
+			}
+	)
+	def.units = _parse_entries(
+		data.get("units", []),
+		"unit",
+		func(entry: Dictionary, pos: Variant) -> Dictionary:
+			return {
+				"type": String(entry.get("type", "drone")),
+				"team_id": int(entry.get("team_id", 0)),
+				"position": pos,
+			}
+	)
 	return def
 
 
@@ -65,84 +93,22 @@ static func _parse_vec2(value: Variant) -> Variant:
 	return Vector2(float(value[0]), float(value[1]))
 
 
-static func _parse_spawn_points(value: Variant) -> Array[Dictionary]:
+## Shared skip-and-warn scaffold for parsing a JSON array of entry
+## dictionaries, each of which must have a valid "position" field. Malformed
+## entries and entries with invalid positions are skipped with a warning;
+## [param build] receives the raw entry and the parsed position and returns
+## the resulting dictionary for that entry.
+static func _parse_entries(value: Variant, label: String, build: Callable) -> Array[Dictionary]:
 	var result: Array[Dictionary] = []
 	if typeof(value) != TYPE_ARRAY:
 		return result
 	for entry in value:
 		if typeof(entry) != TYPE_DICTIONARY:
-			push_warning("MapDefinition: skipping malformed spawn_point entry")
+			push_warning("MapDefinition: skipping malformed %s entry" % label)
 			continue
 		var pos: Variant = _parse_vec2(entry.get("position"))
 		if pos == null:
-			push_warning("MapDefinition: skipping spawn_point with invalid position")
+			push_warning("MapDefinition: skipping %s with invalid position" % label)
 			continue
-		result.append({"team_id": int(entry.get("team_id", 0)), "position": pos})
-	return result
-
-
-static func _parse_biomass_nodes(value: Variant) -> Array[Dictionary]:
-	var result: Array[Dictionary] = []
-	if typeof(value) != TYPE_ARRAY:
-		return result
-	for entry in value:
-		if typeof(entry) != TYPE_DICTIONARY:
-			push_warning("MapDefinition: skipping malformed biomass_node entry")
-			continue
-		var pos: Variant = _parse_vec2(entry.get("position"))
-		if pos == null:
-			push_warning("MapDefinition: skipping biomass_node with invalid position")
-			continue
-		result.append({"position": pos})
-	return result
-
-
-static func _parse_control_points(value: Variant) -> Array[Dictionary]:
-	var result: Array[Dictionary] = []
-	if typeof(value) != TYPE_ARRAY:
-		return result
-	for entry in value:
-		if typeof(entry) != TYPE_DICTIONARY:
-			push_warning("MapDefinition: skipping malformed control_point entry")
-			continue
-		var pos: Variant = _parse_vec2(entry.get("position"))
-		if pos == null:
-			push_warning("MapDefinition: skipping control_point with invalid position")
-			continue
-		(
-			result
-			. append(
-				{
-					"id": String(entry.get("id", "")),
-					"position": pos,
-					"capture_radius": float(entry.get("capture_radius", DEFAULT_CAPTURE_RADIUS)),
-					"vp_weight": int(entry.get("vp_weight", DEFAULT_VP_WEIGHT)),
-				}
-			)
-		)
-	return result
-
-
-static func _parse_units(value: Variant) -> Array[Dictionary]:
-	var result: Array[Dictionary] = []
-	if typeof(value) != TYPE_ARRAY:
-		return result
-	for entry in value:
-		if typeof(entry) != TYPE_DICTIONARY:
-			push_warning("MapDefinition: skipping malformed unit entry")
-			continue
-		var pos: Variant = _parse_vec2(entry.get("position"))
-		if pos == null:
-			push_warning("MapDefinition: skipping unit with invalid position")
-			continue
-		(
-			result
-			. append(
-				{
-					"type": String(entry.get("type", "drone")),
-					"team_id": int(entry.get("team_id", 0)),
-					"position": pos,
-				}
-			)
-		)
+		result.append(build.call(entry, pos) as Dictionary)
 	return result

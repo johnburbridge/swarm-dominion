@@ -1,0 +1,26 @@
+{
+  "name": "Test Arena",
+  "bounds": { "x": 0, "y": 0, "width": 1920, "height": 1080 },
+  "spawn_points": [
+    { "team_id": 1, "position": [760, 400] },
+    { "team_id": 2, "position": [1160, 400] }
+  ],
+  "biomass_nodes": [
+    { "position": [500, 400] },
+    { "position": [950, 300] },
+    { "position": [950, 700] },
+    { "position": [1400, 400] }
+  ],
+  "control_points": [
+    { "id": "center", "position": [960, 540], "capture_radius": 96, "vp_weight": 3 }
+  ],
+  "units": [
+    { "type": "drone", "team_id": 1, "position": [700, 480] },
+    { "type": "drone", "team_id": 1, "position": [760, 540] },
+    { "type": "drone", "team_id": 1, "position": [820, 480] },
+    { "type": "drone", "team_id": 1, "position": [760, 600] },
+    { "type": "drone", "team_id": 2, "position": [1100, 480] },
+    { "type": "drone", "team_id": 2, "position": [1160, 540] },
+    { "type": "drone", "team_id": 2, "position": [1220, 480] }
+  ]
+}

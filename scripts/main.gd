@@ -2,9 +2,6 @@ extends Node2D
 ## Main scene controller.
 ## This is the entry point for the game.
 
-const DroneScene = preload("res://scenes/units/drone.tscn")
-const BiomassNodeScene = preload("res://scenes/resources/biomass_node.tscn")
-const MotherScene = preload("res://scenes/units/mother.tscn")
 const PLAYER_TEAM_ID: int = 1
 const DRAG_THRESHOLD: float = 4.0
 const DOUBLE_TAP_THRESHOLD: float = 0.3
@@ -26,9 +23,34 @@ var _player_mother: MotherUnit = null
 
 func _ready() -> void:
 	print("Swarm Dominion initialized")
-	_spawn_test_units()
-	_spawn_biomass_nodes()
+	_load_map("res://data/map_definitions/test_arena.json")
 	_minimap.set_camera(_camera)
+
+
+func _load_map(path: String) -> void:
+	var definition := MapDefinition.from_file(path)
+	if definition == null:
+		push_warning("Main: failed to load map '%s'" % path)
+		return
+	var loaded := MapLoader.populate(definition, self)
+	_player_mother = _find_player_mother(loaded["mothers"])
+	_apply_camera_bounds(definition.bounds)
+
+
+func _find_player_mother(mothers: Array) -> MotherUnit:
+	for m in mothers:
+		if m is MotherUnit and m.team_id == PLAYER_TEAM_ID:
+			return m
+	return null
+
+
+func _apply_camera_bounds(bounds: Rect2) -> void:
+	if not bounds.has_area():
+		return
+	_camera.limit_left = int(bounds.position.x)
+	_camera.limit_top = int(bounds.position.y)
+	_camera.limit_right = int(bounds.position.x + bounds.size.x)
+	_camera.limit_bottom = int(bounds.position.y + bounds.size.y)
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -205,54 +227,3 @@ func _issue_engage(target: UnitBase, selected: Array[UnitBase]) -> void:
 		var angle := (float(i) / count) * TAU
 		var offset := Vector2(cos(angle), sin(angle)) * (valid_units[i].attack_range * 0.6)
 		valid_units[i].engage_unit(target, offset)
-
-
-func _spawn_biomass_nodes() -> void:
-	var positions: Array[Vector2] = [
-		Vector2(500, 400),
-		Vector2(950, 300),
-		Vector2(950, 700),
-		Vector2(1400, 400),
-	]
-	for pos in positions:
-		var node := BiomassNodeScene.instantiate()
-		node.position = pos
-		add_child(node)
-	print("Spawned %d biomass nodes" % positions.size())
-
-
-func _spawn_test_units() -> void:
-	var player_positions: Array[Vector2] = [
-		Vector2(700, 480),
-		Vector2(760, 540),
-		Vector2(820, 480),
-		Vector2(760, 600),
-	]
-	for pos in player_positions:
-		var drone := DroneScene.instantiate()
-		drone.team_id = 1
-		drone.position = pos
-		drone.modulate = Color(0.7, 1.0, 0.7)
-		add_child(drone)
-	print("Spawned %d player drones" % player_positions.size())
-
-	var enemy_positions: Array[Vector2] = [
-		Vector2(1100, 480),
-		Vector2(1160, 540),
-		Vector2(1220, 480),
-	]
-	for pos in enemy_positions:
-		var drone := DroneScene.instantiate()
-		drone.team_id = 2
-		drone.position = pos
-		drone.modulate = Color(1.0, 0.7, 0.7)
-		add_child(drone)
-	print("Spawned %d enemy drones" % enemy_positions.size())
-
-	var mother := MotherScene.instantiate()
-	mother.team_id = 1
-	mother.position = Vector2(760, 400)
-	mother.modulate = Color(0.6, 1.0, 0.6)
-	add_child(mother)
-	_player_mother = mother
-	print("Spawned player Mother")

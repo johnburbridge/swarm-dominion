@@ -123,7 +123,7 @@ headless-testable.
 - Never crashes on bad data; the worst case is an emptier-than-authored map plus
   warnings.
 
-A private `_to_vec2(value) -> Variant` helper converts a `[x, y]` array to
+A private `_parse_vec2(value) -> Variant` helper converts a `[x, y]` array to
 `Vector2`, returning `null` for malformed input so the caller can skip the entry.
 
 ## Component 2 — `MapLoader` (instantiation layer)

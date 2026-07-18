@@ -68,6 +68,13 @@ static func _build_control_point(cp_def: Dictionary) -> Marker2D:
 
 	var area := Area2D.new()
 	area.name = "CaptureZone"
+	# Placeholder is physics-inert: nothing queries it yet, and leaving it on the
+	# default layer 1 (shared with units) would be a footgun. M7 (SPI-1338) sets an
+	# intentional collision_layer/mask and enables monitoring when it wires capture.
+	area.monitoring = false
+	area.monitorable = false
+	area.collision_layer = 0
+	area.collision_mask = 0
 	var shape := CollisionShape2D.new()
 	var circle := CircleShape2D.new()
 	circle.radius = cp_def["capture_radius"]

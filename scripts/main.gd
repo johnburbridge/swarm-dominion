@@ -45,7 +45,7 @@ func _find_player_mother(mothers: Array) -> MotherUnit:
 
 
 func _apply_camera_bounds(bounds: Rect2) -> void:
-	if bounds.size == Vector2.ZERO:
+	if not bounds.has_area():
 		return
 	_camera.limit_left = int(bounds.position.x)
 	_camera.limit_top = int(bounds.position.y)

@@ -149,20 +149,21 @@ SpriteFrames, so it recolors with no Mother-specific code.
 `tools/generate_keyed_drone.gd`, a committed headless Godot script
 (`godot --headless -s tools/generate_keyed_drone.gd`) that:
 
-1. Reads each **original** drone frame (`drone_idle.png`, `drone_walk_0..3.png`) as its source.
-2. Composites a flat magenta (`Color(1, 0, 1)`) key "core" — a small filled shape centered on
-   the sprite body — onto each frame, over opaque body pixels only (skips transparent pixels
-   so the accent stays on the creature).
-3. Writes each result to a **new** `*_keyed.png` file (e.g. `drone_idle_keyed.png`) and points
-   `drone_frames.tres` at the keyed files. Reading originals and writing to `_keyed` names
-   keeps the generator idempotent — re-running never double-keys.
+1. For each drone frame (`drone_idle.png`, `drone_walk_0..3.png`): composites a flat magenta
+   (`Color(1, 0, 1)`) key "core" — a small filled square centered on the sprite body — onto
+   the frame, over opaque body pixels only (skips transparent pixels so the accent stays on
+   the creature), and writes the result **back to the same file**.
+2. **Idempotency guard:** before keying a frame, it checks whether the center pixel is already
+   the key color; if so the frame is already keyed and it skips it. This makes re-runs safe
+   without introducing new filenames — the frame paths and their import UIDs stay identical,
+   so `drone_frames.tres` needs no edits (the Mother reuses it, so it is keyed too).
 
 Rationale for a committed generator rather than hand-painted PNGs: it is deterministic,
 re-runnable, documents exactly what the "team-color region" is on placeholder art, and keeps
-the convention reproducible when frames change. Exact core size/placement is an
-implementation detail verified by the in-engine screenshot (below); if a centered core lands
-poorly on a frame, the script's placement constants are adjusted until the screenshot reads
-correctly.
+the convention reproducible when frames change. The pristine pre-keyed frames remain in git
+history. Exact core size/placement is an implementation detail verified by the in-engine
+screenshot (below); if a centered core lands poorly on a frame, the script's placement
+constants are adjusted until the screenshot reads correctly.
 
 ## Component 6 — Demo scene (verification)
 
@@ -226,8 +227,8 @@ Scripts/Tests counts rose (grep for the filename), don't trust the summary alone
 | `scripts/systems/team_colors.gd` | New — `TeamColors` team_id→Color source of truth |
 | `scripts/units/unit_base.gd` | Add `_apply_team_color()`, call from `_ready()` |
 | `scripts/systems/map_loader.gd` | Remove `TEAM_TINTS` + `_apply_team_tint` (modulate stopgap) |
-| `tools/generate_keyed_drone.gd` | New — composites the magenta key region onto drone frames |
-| `assets/sprites/units/drone_*_keyed.png` (new) + `drone_frames.tres` | Keyed placeholder frames; tres repointed |
+| `tools/generate_keyed_drone.gd` | New — composites the magenta key region onto drone frames (in place, idempotent) |
+| `assets/sprites/units/drone_idle.png`, `drone_walk_0..3.png` | Keyed in place; `drone_frames.tres` unchanged (same paths/UIDs) |
 | `scenes/dev/team_color_demo.tscn` + `scripts/dev/team_color_demo.gd` | New — verification scene |
 | `tests/unit/test_team_colors.gd` | New — color-mapping tests |
 | `tests/unit/test_unit_team_color.gd` | New — shader-material wiring tests |

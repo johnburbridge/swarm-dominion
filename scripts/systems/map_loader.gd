@@ -9,12 +9,6 @@ const BiomassNodeScene := preload("res://scenes/resources/biomass_node.tscn")
 
 const CONTROL_POINT_GROUP: StringName = &"control_points"
 
-## Temporary team tint — a stopgap until the SPI-1436 palette-swap shader lands.
-const TEAM_TINTS: Dictionary = {
-	1: Color(0.6, 1.0, 0.6),
-	2: Color(1.0, 0.7, 0.7),
-}
-
 
 ## Instantiates every entity in `definition` as a child of `parent`. Returns a
 ## dictionary of the spawned nodes keyed by category.
@@ -33,7 +27,6 @@ static func populate(definition: MapDefinition, parent: Node) -> Dictionary:
 		var mother := MotherScene.instantiate() as MotherUnit
 		mother.team_id = spawn["team_id"]
 		mother.position = spawn["position"]
-		_apply_team_tint(mother, spawn["team_id"])
 		parent.add_child(mother)
 		result["mothers"].append(mother)
 
@@ -92,9 +85,4 @@ static func _build_unit(unit_def: Dictionary) -> UnitBase:
 	var unit := DroneScene.instantiate() as UnitBase
 	unit.team_id = unit_def["team_id"]
 	unit.position = unit_def["position"]
-	_apply_team_tint(unit, unit_def["team_id"])
 	return unit
-
-
-static func _apply_team_tint(node: CanvasItem, team_id: int) -> void:
-	node.modulate = TEAM_TINTS.get(team_id, Color.WHITE)

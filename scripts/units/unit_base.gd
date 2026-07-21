@@ -11,6 +11,9 @@ enum UnitState { IDLE, MOVING, ATTACKING, ATTACK_MOVING, ENGAGING, HARVESTING, D
 ## Threshold distance to consider "arrived" at target
 const ARRIVAL_THRESHOLD: float = 5.0
 
+## Palette-swap shader that recolors the sprite's team-color key region (SPI-1436).
+const TEAM_COLOR_SHADER := preload("res://assets/shaders/team_color.gdshader")
+
 ## Movement speed in pixels per second
 @export var move_speed: float = 200.0
 @export var team_id: int = 0
@@ -55,6 +58,7 @@ func _ready() -> void:
 	_load_stats()
 	_setup_attack_area()
 	_setup_selection_circle()
+	_apply_team_color()
 	EventBus.unit_died.connect(_on_unit_died)
 
 
@@ -243,6 +247,16 @@ func _setup_selection_circle() -> void:
 	_selection_circle.z_index = -1
 	_selection_circle.visible = false
 	add_child(_selection_circle)
+
+
+## Applies the team-color palette-swap shader to this unit's sprite, tinting the
+## key-hue region to this team's color (SPI-1436). Each unit gets its own
+## ShaderMaterial so per-unit team_color params never bleed across units.
+func _apply_team_color() -> void:
+	var material := ShaderMaterial.new()
+	material.shader = TEAM_COLOR_SHADER
+	material.set_shader_parameter("team_color", TeamColors.color_for(team_id))
+	_sprite.material = material
 
 
 func _process_movement() -> void:

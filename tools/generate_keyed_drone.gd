@@ -15,8 +15,11 @@ const FRAMES: Array[String] = [
 
 ## Magenta key color (matches TeamColors.KEY_HUE / the shader's key_hue default).
 const KEY_COLOR: Color = Color(1, 0, 1)
-## Half-size of the square key core, in pixels, centered on the sprite.
-const CORE_HALF: int = 4
+## Half-size of the square key core, in pixels, centered on the sprite. Sized to
+## cover most of the ~32px placeholder body so team color reads across the unit's
+## silhouette at RTS zoom (the body-alpha check below keeps it off transparent
+## margins). Final art will instead designate a deliberate neutral key region.
+const CORE_HALF: int = 10
 ## Minimum alpha for a pixel to count as "body" (skip transparent pixels).
 const BODY_ALPHA: float = 0.5
 

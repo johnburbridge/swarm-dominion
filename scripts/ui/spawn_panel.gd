@@ -1,15 +1,20 @@
 class_name SpawnPanel extends Control
 ## HUD command panel: shows a spawn button while a Mother is selected, greys it
-## out when the owning team can't afford a Drone, and spawns on click.
+## out when the owning team can't afford a Drone, spawns on click, and offers a
+## "Set Rally" button that requests rally-placement arming (SPI-1424).
+
+signal rally_set_requested
 
 var _mother: MotherUnit = null
 
 @onready var _button: Button = $SpawnButton
+@onready var _rally_button: Button = $RallyButton
 
 
 func _ready() -> void:
 	visible = false
 	_button.pressed.connect(_on_spawn_pressed)
+	_rally_button.pressed.connect(_on_rally_pressed)
 	SelectionManager.selection_changed.connect(_on_selection_changed)
 	EventBus.resources_changed.connect(_on_resources_changed)
 
@@ -31,6 +36,10 @@ func _on_resources_changed(team_id: int, _amount: int) -> void:
 func _on_spawn_pressed() -> void:
 	if is_instance_valid(_mother):
 		_mother.spawn_unit()
+
+
+func _on_rally_pressed() -> void:
+	rally_set_requested.emit()
 
 
 func _refresh() -> void:

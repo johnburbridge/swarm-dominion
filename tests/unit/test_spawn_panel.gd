@@ -212,6 +212,43 @@ func test_mother_get_spawn_cost_returns_loaded_cost() -> void:
 	assert_eq(mother.get_spawn_cost(), expected, "get_spawn_cost should return the loaded cost")
 
 
+# --- rally button (SPI-1424) ---
+
+
+func test_panel_has_rally_button() -> void:
+	var panel := await _instantiate_panel()
+	assert_not_null(
+		panel.get_node_or_null("RallyButton"),
+		"SpawnPanel should have a Button child named 'RallyButton'"
+	)
+
+
+func test_rally_button_emits_request() -> void:
+	var panel := await _instantiate_panel()
+	var mother := _make_mother(PLAYER_TEAM)
+	SelectionManager.select_unit(mother)
+	watch_signals(panel)
+	var button := panel.get_node_or_null("RallyButton") as Button
+	assert_not_null(button, "RallyButton should exist")
+	if button == null:
+		return
+	button.pressed.emit()
+	assert_signal_emitted(
+		panel, "rally_set_requested", "pressing RallyButton should emit rally_set_requested"
+	)
+
+
+func test_rally_button_enabled_regardless_of_cost() -> void:
+	var panel := await _instantiate_panel()
+	var mother := _make_mother(PLAYER_TEAM)
+	# team has 0 biomass (before_each reset); rally is free, so the button stays enabled
+	SelectionManager.select_unit(mother)
+	var button := panel.get_node_or_null("RallyButton") as Button
+	assert_not_null(button, "RallyButton should exist")
+	if button != null:
+		assert_false(button.disabled, "RallyButton should be enabled whenever a Mother is selected")
+
+
 func test_main_scene_has_spawn_panel_under_ui_hidden() -> void:
 	var main := _main_scene.instantiate()
 	add_child_autofree(main)

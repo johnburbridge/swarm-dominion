@@ -17,6 +17,10 @@ const SPAWN_RADIUS: float = 60.0
 ## cross-platform determinism of the sin/cos placement is a separate, codebase-wide
 ## networking concern for M11/M12, not addressed here.)
 const SPAWN_ANGLE_STEP: float = TAU / 8.0
+## Offset from the Mother's center for the default rally when no explicit point is
+## set: directly below, clear of the Mother's body (radius 32) plus a Drone's radius,
+## so spawned Drones disperse instead of stacking on the Mother.
+const DEFAULT_RALLY_OFFSET: Vector2 = Vector2(0, 96)
 
 ## Biomass charged per Drone; loaded from data/upgrade_costs.json in _ready.
 ## Defaults to 0 so that if the data file cannot be read the Mother fails safe
@@ -24,6 +28,12 @@ const SPAWN_ANGLE_STEP: float = TAU / 8.0
 var _spawn_cost: int = 0
 ## Number of Drones spawned so far; drives the placement-ring angle.
 var _spawn_count: int = 0
+## Explicit rally point (world space); meaningful only when _has_rally is true.
+var _rally_point: Vector2 = Vector2.ZERO
+## Whether the player has set an explicit rally (vs. the just-below-Mother default).
+var _has_rally: bool = false
+## World-space (top_level) visual for the rally point; a child so it frees with the Mother.
+var _rally_marker: RallyMarker = null
 
 
 func _init() -> void:
@@ -33,6 +43,52 @@ func _init() -> void:
 func _ready() -> void:
 	super._ready()
 	_load_spawn_cost()
+	_setup_rally_marker()
+
+
+func _setup_rally_marker() -> void:
+	_rally_marker = RallyMarker.new()
+	# top_level so the marker's transform is world-space and the rally point stays
+	# put when the (mobile) Mother moves.
+	_rally_marker.top_level = true
+	_rally_marker.set_team_color(TeamColors.color_for(team_id))
+	_rally_marker.visible = false
+	add_child(_rally_marker)
+
+
+## Overrides UnitBase.set_selected to also toggle the rally marker: visible only
+## when the Mother is selected AND has an explicit rally. Deselecting hides the
+## marker but keeps _rally_point/_has_rally.
+func set_selected(selected: bool) -> void:
+	super.set_selected(selected)
+	if _rally_marker != null:
+		_rally_marker.visible = selected and _has_rally
+
+
+## Records an explicit rally point, moves the marker there, and shows it if the
+## Mother is currently selected.
+func set_rally_point(pos: Vector2) -> void:
+	_rally_point = pos
+	_has_rally = true
+	if _rally_marker != null:
+		_rally_marker.global_position = pos
+		_rally_marker.visible = _is_selected
+
+
+func has_rally() -> bool:
+	return _has_rally
+
+
+func get_rally_point() -> Vector2:
+	return _rally_point
+
+
+## Single source of truth for where a spawned Drone goes: the explicit rally if
+## set, else just below the Mother (DEFAULT_RALLY_OFFSET).
+func get_effective_rally() -> Vector2:
+	if _has_rally:
+		return _rally_point
+	return position + DEFAULT_RALLY_OFFSET
 
 
 func is_auto_targetable() -> bool:
@@ -58,6 +114,7 @@ func spawn_unit() -> UnitBase:
 	drone.position = position + Vector2.from_angle(angle) * SPAWN_RADIUS
 	_spawn_count += 1
 	get_parent().add_child(drone)
+	drone.move_to(get_effective_rally())
 	EventBus.unit_spawned.emit(drone)
 	return drone
 

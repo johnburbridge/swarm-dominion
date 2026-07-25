@@ -12,6 +12,7 @@ var _is_select_pressed: bool = false
 var _select_press_position: Vector2 = Vector2.ZERO
 var _is_dragging: bool = false
 var _attack_move_pending: bool = false
+var _rally_set_pending: bool = false
 var _last_recall_group: int = -1
 var _last_recall_time: float = 0.0
 var _player_mother: MotherUnit = null
@@ -19,12 +20,14 @@ var _player_mother: MotherUnit = null
 @onready var _camera: Camera2D = $Camera2D
 @onready var _selection_box: SelectionBox = $UI/SelectionBox
 @onready var _minimap: Minimap = $UI/Minimap
+@onready var _spawn_panel: SpawnPanel = $UI/SpawnPanel
 
 
 func _ready() -> void:
 	print("Swarm Dominion initialized")
 	_load_map("res://data/map_definitions/test_arena.json")
 	_minimap.set_camera(_camera)
+	_spawn_panel.rally_set_requested.connect(_on_rally_set_requested)
 
 
 func _load_map(path: String) -> void:
@@ -63,6 +66,8 @@ func _unhandled_input(event: InputEvent) -> void:
 		_update_drag(event.position)
 	elif event.is_action_pressed("attack_move"):
 		_attack_move_pending = true
+	elif event.is_action_pressed("set_rally"):
+		_arm_rally_from_hotkey()
 	elif event is InputEventKey and event.pressed and not event.echo:
 		var key: int = event.keycode
 		if key >= KEY_1 and key <= KEY_5:
@@ -123,6 +128,10 @@ func _finish_drag_select() -> void:
 
 
 func _handle_click_select() -> void:
+	if _rally_set_pending:
+		_rally_set_pending = false
+		_issue_set_rally(get_global_mouse_position())
+		return
 	if _attack_move_pending:
 		_attack_move_pending = false
 		_issue_attack_move()
@@ -149,6 +158,23 @@ func _issue_attack_move() -> void:
 	for unit in selected:
 		if is_instance_valid(unit):
 			unit.attack_move_to(click_pos)
+
+
+func _on_rally_set_requested() -> void:
+	_rally_set_pending = true
+
+
+func _arm_rally_from_hotkey() -> void:
+	for unit in SelectionManager.get_selected_units():
+		if is_instance_valid(unit) and unit is MotherUnit and unit.team_id == PLAYER_TEAM_ID:
+			_rally_set_pending = true
+			return
+
+
+func _issue_set_rally(pos: Vector2) -> void:
+	for unit in SelectionManager.get_selected_units():
+		if is_instance_valid(unit) and unit is MotherUnit and unit.team_id == PLAYER_TEAM_ID:
+			unit.set_rally_point(pos)
 
 
 func _recall_group(index: int) -> void:

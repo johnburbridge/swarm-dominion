@@ -14,6 +14,12 @@ const ARRIVAL_THRESHOLD: float = 5.0
 ## Palette-swap shader that recolors the sprite's team-color key region (SPI-1436).
 const TEAM_COLOR_SHADER := preload("res://assets/shaders/team_color.gdshader")
 
+## Spawn emerge effect (SPI-1425): a purely cosmetic scale-in + fade-in for a
+## freshly Mother-spawned unit. Visual only — never touches position/state.
+const EMERGE_DURATION: float = 0.25
+## Starting scale fraction of the sprite at the beginning of the emerge tween.
+const EMERGE_START_SCALE: float = 0.3
+
 ## Movement speed in pixels per second
 @export var move_speed: float = 200.0
 @export var team_id: int = 0
@@ -90,6 +96,25 @@ func set_selected(selected: bool) -> void:
 		EventBus.unit_selected.emit(self)
 	else:
 		EventBus.unit_deselected.emit(self)
+
+
+## Plays a brief cosmetic emerge effect on the sprite (scale-in + fade-in) for a
+## freshly spawned unit. Visual only: it animates the child sprite's scale and
+## modulate and never touches position, _target_position, or _state — so it is
+## lockstep-safe and non-blocking. Called by MotherUnit.spawn_unit(); directly
+## instantiated units (MapLoader, tests) never emerge.
+func play_spawn_emerge() -> void:
+	if _sprite == null:
+		return
+	var target_scale := _sprite.scale
+	var faded := _sprite.modulate
+	faded.a = 0.0
+	_sprite.scale = target_scale * EMERGE_START_SCALE
+	_sprite.modulate = faded
+	var tween := create_tween()
+	tween.set_parallel(true)
+	tween.tween_property(_sprite, "scale", target_scale, EMERGE_DURATION)
+	tween.tween_property(_sprite, "modulate:a", 1.0, EMERGE_DURATION)
 
 
 func move_to(target: Vector2) -> void:

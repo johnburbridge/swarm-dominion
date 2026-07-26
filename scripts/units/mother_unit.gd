@@ -114,6 +114,7 @@ func spawn_unit() -> UnitBase:
 	drone.position = position + Vector2.from_angle(angle) * SPAWN_RADIUS
 	_spawn_count += 1
 	get_parent().add_child(drone)
+	drone.play_spawn_emerge()
 	drone.move_to(get_effective_rally())
 	EventBus.unit_spawned.emit(drone)
 	return drone

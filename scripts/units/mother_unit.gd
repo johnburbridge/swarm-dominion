@@ -3,8 +3,8 @@ class_name MotherUnit extends UnitBase
 ## auto-attack — both fall out of the "mother" stats entry having no
 ## harvest_speed / attack_range (they default to 0, so harvest_at() no-ops and
 ## no attack Area2D is built). It is also never auto-targeted by enemies. It
-## converts stored biomass into Level 1 Drones via spawn_unit() (SPI-1422).
-## Rally points come in a later M4 story (SPI-1424).
+## converts stored biomass into Level 1 Drones via spawn_unit() (SPI-1422), sending
+## them to a rally point (SPI-1424) placed behind her when she is moving (SPI-1429).
 
 const DroneScene := preload("res://scenes/units/drone.tscn")
 
@@ -21,11 +21,12 @@ const SPAWN_ANGLE_STEP: float = TAU / 8.0
 ## set: directly below, clear of the Mother's body (radius 32) plus a Drone's radius,
 ## so spawned Drones disperse instead of stacking on the Mother.
 const DEFAULT_RALLY_OFFSET: Vector2 = Vector2(0, 96)
-## Angular step between rear-fan slots while the Mother is moving. TAU / 12 (30°)
-## keeps the widest slot (±2 steps) within ±60° of directly-behind — deliberately
+## Angular step between rear-fan slots while the Mother is moving. TAU / 10 (36°)
+## keeps the widest slot (±2 steps) within ±72° of directly-behind — deliberately
 ## short of the ±90° hemisphere boundary, where the behind-ness dot product sits on
-## zero and float error could tip it positive.
-const REAR_FAN_STEP: float = TAU / 12.0
+## zero and float error could tip it positive. It also spaces adjacent slots
+## 2·SPAWN_RADIUS·sin(18°) ≈ 37px apart, clear of a Drone's 32px diameter.
+const REAR_FAN_STEP: float = TAU / 10.0
 ## Rear-fan slot offsets in REAR_FAN_STEP units, alternating outward from
 ## directly-behind so successive spawns disperse without leaving the rear hemisphere.
 const REAR_FAN_OFFSETS: Array[int] = [0, 1, -1, 2, -2]
@@ -91,14 +92,14 @@ func get_rally_point() -> Vector2:
 	return _rally_point
 
 
-## Unit vector pointing behind the Mother relative to her current movement, or
-## Vector2.ZERO when she is stationary. velocity is refreshed by _process_movement()
-## every physics frame while moving and zeroed on arrival, so a non-zero velocity is
-## the "is moving" signal, and it is what the rear-facing placement keys off (SPI-1429).
+## Unit vector pointing behind the Mother relative to where she is trying to go, or
+## Vector2.ZERO when she is under no movement order (SPI-1429). Keys off the command
+## heading rather than velocity — see UnitBase._current_heading() for why.
 func _rear_direction() -> Vector2:
-	if velocity == Vector2.ZERO:
+	var heading := _current_heading()
+	if heading.is_zero_approx():
 		return Vector2.ZERO
-	return -velocity.normalized()
+	return -heading.normalized()
 
 
 ## Single source of truth for where a spawned Drone goes: the explicit rally if set,
@@ -116,6 +117,10 @@ func get_effective_rally() -> Vector2:
 
 ## Ring angle for the next spawn: fanned behind the Mother while she is moving, else
 ## the original fixed ring (SPI-1422) so stationary placement is unchanged.
+## _spawn_count is shared by both schemes, so a Mother that spawns while parked and
+## then starts moving enters the fan mid-sequence rather than at slot 0. Harmless —
+## every slot is a valid rear position — and it keeps one counter as the single
+## source of spawn ordering.
 func _spawn_angle() -> float:
 	var rear := _rear_direction()
 	if rear == Vector2.ZERO:

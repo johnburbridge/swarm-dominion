@@ -73,13 +73,20 @@ func test_spawned_drone_moves_to_default_rally() -> void:
 	)
 
 
+## Puts the Mother under a move order in `heading`, far enough that move_to() does
+## not short-circuit on ARRIVAL_THRESHOLD, and returns that heading.
+func _send(mother: MotherUnit, heading: Vector2) -> Vector2:
+	mother.move_to(mother.position + heading * 10.0)
+	return heading
+
+
 func test_default_rally_sits_behind_a_moving_mother() -> void:
 	# SPI-1429: the default rally must trail the Mother rather than sit due south,
 	# or a southward-moving Mother parks her own Drones in her path.
 	var mother := _create_mother(1, Vector2(400, 300))
-	mother.velocity = Vector2(150, 150)  # moving south-east
+	var heading := _send(mother, Vector2(150, 150))  # moving south-east
 	var offset := mother.get_effective_rally() - mother.position
-	assert_lte(offset.dot(mother.velocity), 0.0, "default rally should be behind a moving Mother")
+	assert_lt(offset.dot(heading), 0.0, "default rally should be behind a moving Mother")
 	assert_almost_eq(
 		offset.length(),
 		MotherUnit.DEFAULT_RALLY_OFFSET.length(),
@@ -90,16 +97,42 @@ func test_default_rally_sits_behind_a_moving_mother() -> void:
 
 func test_default_rally_follows_heading_when_it_changes() -> void:
 	var mother := _create_mother(1, Vector2(400, 300))
-	mother.velocity = Vector2(0, 200)  # moving south
+	_send(mother, Vector2(0, 200))  # moving south
 	var southbound := mother.get_effective_rally() - mother.position
-	mother.velocity = Vector2(0, -200)  # moving north
+	_send(mother, Vector2(0, -200))  # moving north
 	var northbound := mother.get_effective_rally() - mother.position
 	assert_lt(southbound.dot(northbound), 0.0, "reversing heading should flip the default rally")
 
 
+func test_blocked_mother_still_rallies_behind_her() -> void:
+	# move_and_slide() overwrites velocity with the post-collision result, so a Mother
+	# pressed head-on into an obstacle ends the frame at ZERO while still under a move
+	# order. Placement must follow the command, not the solver's output — otherwise the
+	# fix disables itself exactly when she is jammed and needs it most.
+	var mother := _create_mother(1, Vector2(400, 300))
+	var heading := _send(mother, Vector2(0, 200))  # commanded south
+	mother.velocity = Vector2.ZERO  # as move_and_slide leaves a blocked body
+	var offset := mother.get_effective_rally() - mother.position
+	assert_lt(offset.dot(heading), 0.0, "a blocked but still-commanded Mother rallies behind her")
+
+
+func test_idle_mother_with_stale_velocity_uses_the_plain_default() -> void:
+	# _process_engaging() drops to IDLE without zeroing velocity, so a motionless
+	# Mother can carry a stale non-zero velocity. She is stationary; treat her so.
+	var mother := _create_mother(1, Vector2(400, 300))
+	# Eastward, so a velocity-derived rally would land 96px WEST — distinguishable
+	# from the southward default, which a north/south stale value would not be.
+	mother.velocity = Vector2(200, 0)  # stale leftover, no move order
+	assert_eq(
+		mother.get_effective_rally(),
+		Vector2(400, 300) + Vector2(0, 96),
+		"an idle Mother uses the straight-down default regardless of stale velocity"
+	)
+
+
 func test_explicit_rally_is_not_overridden_by_heading() -> void:
 	var mother := _create_mother(1, Vector2(400, 300))
-	mother.velocity = Vector2(200, 0)
+	_send(mother, Vector2(200, 0))
 	mother.set_rally_point(Vector2(700, 500))
 	assert_eq(
 		mother.get_effective_rally(),
@@ -111,12 +144,12 @@ func test_explicit_rally_is_not_overridden_by_heading() -> void:
 func test_spawned_drone_targets_the_rear_default_rally() -> void:
 	var mother := _create_mother(1, Vector2(400, 300))
 	ResourceManager.add_resources(1, 100)
-	mother.velocity = Vector2(0, 200)  # moving south
+	var heading := _send(mother, Vector2(0, 200))  # moving south
 	var drone := mother.spawn_unit()
 	autofree(drone)
 	assert_not_null(drone, "spawn should succeed")
 	var offset := drone._target_position - mother.position
-	assert_lte(offset.dot(mother.velocity), 0.0, "Drone should be sent behind the moving Mother")
+	assert_lt(offset.dot(heading), 0.0, "Drone should be sent behind the moving Mother")
 
 
 func test_marker_hidden_when_unselected() -> void:

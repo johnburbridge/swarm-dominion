@@ -100,32 +100,57 @@ func test_insufficient_biomass_no_spawn() -> void:
 	assert_signal_not_emitted(EventBus, "unit_spawned", "no spawn signal on failure")
 
 
+## Puts the Mother under a move order in `heading`, far enough that move_to() does
+## not short-circuit on ARRIVAL_THRESHOLD, and returns that heading.
+func _send(mother: MotherUnit, heading: Vector2) -> Vector2:
+	mother.move_to(mother.position + heading * 10.0)
+	return heading
+
+
 func test_moving_mother_places_drone_behind_her() -> void:
 	# SPI-1429: the ring's base angle follows the Mother's heading so a spawned
 	# Drone never pops into the path of a moving Mother.
 	var mother := _create_mother(1, Vector2(400, 300))
 	ResourceManager.add_resources(1, 100)
-	mother.velocity = Vector2(200, 0)  # moving east
+	var heading := _send(mother, Vector2(200, 0))  # moving east
 	var drone := mother.spawn_unit()
 	autofree(drone)
 	var offset := drone.position - mother.position
-	assert_lte(offset.dot(mother.velocity), 0.0, "Drone should spawn behind a moving Mother")
-	assert_gte(offset.length(), 48.0, "Drone must still clear the Mother's body")
+	assert_lt(offset.dot(heading), 0.0, "Drone should spawn behind a moving Mother")
+	assert_almost_eq(
+		offset.length(),
+		MotherUnit.SPAWN_RADIUS,
+		0.01,
+		"the rear fan must keep the Drone clear of the Mother's body, as the ring does"
+	)
 
 
 func test_consecutive_moving_spawns_stay_behind_and_distinct() -> void:
 	var mother := _create_mother(1, Vector2(400, 300))
 	ResourceManager.add_resources(1, 500)
-	mother.velocity = Vector2(0, 200)  # moving south
+	var heading := _send(mother, Vector2(0, 200))  # moving south
 	var seen: Array[Vector2] = []
 	for i in 5:
 		var drone := mother.spawn_unit()
 		autofree(drone)
 		assert_not_null(drone, "spawn %d should succeed" % i)
 		var offset := drone.position - mother.position
-		assert_lte(offset.dot(mother.velocity), 0.0, "spawn %d should stay behind the Mother" % i)
+		assert_lt(offset.dot(heading), 0.0, "spawn %d should stay behind the Mother" % i)
 		assert_false(seen.has(drone.position), "spawn %d should not stack on an earlier one" % i)
 		seen.append(drone.position)
+
+
+func test_blocked_mother_still_spawns_behind_her() -> void:
+	# Companion to the rally-side guard: a Mother jammed against an obstacle has
+	# velocity ZERO from move_and_slide while still under a move order.
+	var mother := _create_mother(1, Vector2(400, 300))
+	ResourceManager.add_resources(1, 100)
+	var heading := _send(mother, Vector2(0, 200))
+	mother.velocity = Vector2.ZERO  # as move_and_slide leaves a blocked body
+	var drone := mother.spawn_unit()
+	autofree(drone)
+	var offset := drone.position - mother.position
+	assert_lt(offset.dot(heading), 0.0, "a blocked but still-commanded Mother spawns behind her")
 
 
 func test_stationary_ring_placement_unchanged() -> void:

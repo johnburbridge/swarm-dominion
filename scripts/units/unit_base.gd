@@ -289,8 +289,9 @@ func _apply_team_color() -> void:
 ## velocity: move_and_slide() overwrites velocity with the post-collision result, so a
 ## unit pressed head-on into an obstacle ends the frame at ZERO while still driving
 ## toward its destination, and _process_engaging() leaves velocity stale when it drops
-## back to IDLE. HARVESTING is excluded because a harvester parks once inside the
-## node's radius, so it has no stable heading.
+## back to IDLE. HARVESTING is excluded because the only caller (MotherUnit) can never
+## harvest — its approach leg does have a stable heading and should be added here if a
+## harvesting unit ever needs one.
 func _current_heading() -> Vector2:
 	match _state:
 		UnitState.MOVING, UnitState.ATTACK_MOVING:

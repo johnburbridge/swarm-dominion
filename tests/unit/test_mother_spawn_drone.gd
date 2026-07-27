@@ -136,7 +136,14 @@ func test_consecutive_moving_spawns_stay_behind_and_distinct() -> void:
 		assert_not_null(drone, "spawn %d should succeed" % i)
 		var offset := drone.position - mother.position
 		assert_lt(offset.dot(heading), 0.0, "spawn %d should stay behind the Mother" % i)
-		assert_false(seen.has(drone.position), "spawn %d should not stack on an earlier one" % i)
+		# Separation, not mere distinctness: this is what pins REAR_FAN_STEP wide
+		# enough that adjacent fan slots clear a Drone's 32px diameter.
+		for prior in seen:
+			assert_gte(
+				drone.position.distance_to(prior),
+				32.0,
+				"spawn %d should clear a Drone's width from every earlier spawn" % i
+			)
 		seen.append(drone.position)
 
 

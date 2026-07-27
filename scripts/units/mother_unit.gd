@@ -21,6 +21,14 @@ const SPAWN_ANGLE_STEP: float = TAU / 8.0
 ## set: directly below, clear of the Mother's body (radius 32) plus a Drone's radius,
 ## so spawned Drones disperse instead of stacking on the Mother.
 const DEFAULT_RALLY_OFFSET: Vector2 = Vector2(0, 96)
+## Angular step between rear-fan slots while the Mother is moving. TAU / 12 (30°)
+## keeps the widest slot (±2 steps) within ±60° of directly-behind — deliberately
+## short of the ±90° hemisphere boundary, where the behind-ness dot product sits on
+## zero and float error could tip it positive.
+const REAR_FAN_STEP: float = TAU / 12.0
+## Rear-fan slot offsets in REAR_FAN_STEP units, alternating outward from
+## directly-behind so successive spawns disperse without leaving the rear hemisphere.
+const REAR_FAN_OFFSETS: Array[int] = [0, 1, -1, 2, -2]
 
 ## Biomass charged per Drone; loaded from data/upgrade_costs.json in _ready.
 ## Defaults to 0 so that if the data file cannot be read the Mother fails safe
@@ -83,12 +91,37 @@ func get_rally_point() -> Vector2:
 	return _rally_point
 
 
-## Single source of truth for where a spawned Drone goes: the explicit rally if
-## set, else just below the Mother (DEFAULT_RALLY_OFFSET).
+## Unit vector pointing behind the Mother relative to her current movement, or
+## Vector2.ZERO when she is stationary. velocity is refreshed by _process_movement()
+## every physics frame while moving and zeroed on arrival, so a non-zero velocity is
+## the "is moving" signal, and it is what the rear-facing placement keys off (SPI-1429).
+func _rear_direction() -> Vector2:
+	if velocity == Vector2.ZERO:
+		return Vector2.ZERO
+	return -velocity.normalized()
+
+
+## Single source of truth for where a spawned Drone goes: the explicit rally if set,
+## else DEFAULT_RALLY_OFFSET trailing behind a moving Mother — a fixed southward
+## default would park Drones in the path of a southbound Mother — or straight below
+## her when she is stationary.
 func get_effective_rally() -> Vector2:
 	if _has_rally:
 		return _rally_point
-	return position + DEFAULT_RALLY_OFFSET
+	var rear := _rear_direction()
+	if rear == Vector2.ZERO:
+		return position + DEFAULT_RALLY_OFFSET
+	return position + rear * DEFAULT_RALLY_OFFSET.length()
+
+
+## Ring angle for the next spawn: fanned behind the Mother while she is moving, else
+## the original fixed ring (SPI-1422) so stationary placement is unchanged.
+func _spawn_angle() -> float:
+	var rear := _rear_direction()
+	if rear == Vector2.ZERO:
+		return _spawn_count * SPAWN_ANGLE_STEP
+	var slot: int = REAR_FAN_OFFSETS[_spawn_count % REAR_FAN_OFFSETS.size()]
+	return rear.angle() + slot * REAR_FAN_STEP
 
 
 func is_auto_targetable() -> bool:
@@ -108,9 +141,10 @@ func spawn_unit() -> UnitBase:
 		return null
 	var drone := DroneScene.instantiate() as UnitBase
 	drone.team_id = team_id
-	# The ring wraps every 8 spawns (angle returns to 0), so the 9th Drone stacks
-	# on the 1st. Rally points (SPI-1424) are the intended dispersal mechanism.
-	var angle := _spawn_count * SPAWN_ANGLE_STEP
+	# Both rings wrap (every 8 spawns stationary, every 5 moving), so a later Drone
+	# eventually stacks on an earlier one. Rally points (SPI-1424) are the intended
+	# dispersal mechanism — the Drone walks off the ring on the spawn frame anyway.
+	var angle := _spawn_angle()
 	drone.position = position + Vector2.from_angle(angle) * SPAWN_RADIUS
 	_spawn_count += 1
 	get_parent().add_child(drone)

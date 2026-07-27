@@ -100,6 +100,56 @@ func test_insufficient_biomass_no_spawn() -> void:
 	assert_signal_not_emitted(EventBus, "unit_spawned", "no spawn signal on failure")
 
 
+func test_moving_mother_places_drone_behind_her() -> void:
+	# SPI-1429: the ring's base angle follows the Mother's heading so a spawned
+	# Drone never pops into the path of a moving Mother.
+	var mother := _create_mother(1, Vector2(400, 300))
+	ResourceManager.add_resources(1, 100)
+	mother.velocity = Vector2(200, 0)  # moving east
+	var drone := mother.spawn_unit()
+	autofree(drone)
+	var offset := drone.position - mother.position
+	assert_lte(offset.dot(mother.velocity), 0.0, "Drone should spawn behind a moving Mother")
+	assert_gte(offset.length(), 48.0, "Drone must still clear the Mother's body")
+
+
+func test_consecutive_moving_spawns_stay_behind_and_distinct() -> void:
+	var mother := _create_mother(1, Vector2(400, 300))
+	ResourceManager.add_resources(1, 500)
+	mother.velocity = Vector2(0, 200)  # moving south
+	var seen: Array[Vector2] = []
+	for i in 5:
+		var drone := mother.spawn_unit()
+		autofree(drone)
+		assert_not_null(drone, "spawn %d should succeed" % i)
+		var offset := drone.position - mother.position
+		assert_lte(offset.dot(mother.velocity), 0.0, "spawn %d should stay behind the Mother" % i)
+		assert_false(seen.has(drone.position), "spawn %d should not stack on an earlier one" % i)
+		seen.append(drone.position)
+
+
+func test_stationary_ring_placement_unchanged() -> void:
+	# Regression guard: a stationary Mother keeps the original SPI-1422 ring.
+	var mother := _create_mother(1, Vector2(400, 300))
+	ResourceManager.add_resources(1, 200)
+	var first := mother.spawn_unit()
+	autofree(first)
+	var second := mother.spawn_unit()
+	autofree(second)
+	assert_almost_eq(
+		first.position,
+		mother.position + Vector2.from_angle(0.0) * MotherUnit.SPAWN_RADIUS,
+		Vector2(0.01, 0.01),
+		"first stationary spawn should sit at the original ring angle 0"
+	)
+	assert_almost_eq(
+		second.position,
+		mother.position + Vector2.from_angle(MotherUnit.SPAWN_ANGLE_STEP) * MotherUnit.SPAWN_RADIUS,
+		Vector2(0.01, 0.01),
+		"second stationary spawn should advance by SPAWN_ANGLE_STEP as before"
+	)
+
+
 func test_repeated_spawns_fan_out() -> void:
 	var mother := _create_mother(1, Vector2(400, 300))
 	ResourceManager.add_resources(1, 200)

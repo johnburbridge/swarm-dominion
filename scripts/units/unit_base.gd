@@ -284,6 +284,26 @@ func _apply_team_color() -> void:
 	_sprite.material = material
 
 
+## The direction this unit is trying to move, or Vector2.ZERO when it is under no
+## movement order. Deliberately derived from the command target rather than from
+## velocity: move_and_slide() overwrites velocity with the post-collision result, so a
+## unit pressed head-on into an obstacle ends the frame at ZERO while still driving
+## toward its destination, and _process_engaging() leaves velocity stale when it drops
+## back to IDLE. HARVESTING is excluded because the only caller (MotherUnit) can never
+## harvest — its approach leg does have a stable heading and should be added here if a
+## harvesting unit ever needs one.
+func _current_heading() -> Vector2:
+	match _state:
+		UnitState.MOVING, UnitState.ATTACK_MOVING:
+			return _target_position - position
+		UnitState.ENGAGING:
+			if _is_valid_target(_engage_target):
+				return _engage_target.global_position + _engage_offset - global_position
+			return Vector2.ZERO
+		_:
+			return Vector2.ZERO
+
+
 func _process_movement() -> void:
 	var distance := position.distance_to(_target_position)
 

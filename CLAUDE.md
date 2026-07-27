@@ -30,8 +30,13 @@ docs/       - Documentation including PRD
 # Open project in Godot
 godot project.godot
 
-# Run the game
-godot --path . scenes/main/main.tscn
+# Run the game (launches run/main_scene, i.e. scenes/main/main.tscn)
+godot --path .
+
+# Run a specific scene instead. Note: a bare positional path is read as the
+# location of project.godot, NOT as a scene — passing a .tscn that way silently
+# opens the Project Manager instead of running anything.
+godot --path . --scene res://scenes/main/main.tscn
 
 # Run tests (headless)
 godot --headless -s addons/gut/gut_cmdln.gd

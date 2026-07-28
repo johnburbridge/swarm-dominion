@@ -1,14 +1,31 @@
 # Controls
 
-Every input the game currently responds to. If a binding is not listed here, it does
-not exist yet.
+Every keyboard and mouse binding the game responds to.
 
 The `Action` column gives the input-map name from `project.godot`, for anyone
-rebinding or reading the code. Bindings with no action name are handled directly in
-`scripts/main.gd`.
+rebinding or reading the code. Bindings with no action name are handled as raw
+keycodes in `scripts/main.gd`.
 
 An in-game controls screen is planned for Milestone 15; until then this file is the
 reference.
+
+### What is guaranteed, and what is not
+
+`tests/unit/test_controls_doc.gd` fails the build if this file drifts from the code,
+but only along the axes it can see. It **does** enforce that every input-map action and
+every raw keycode `main.gd` handles is documented here, with the right key, and that
+nothing documented has been deleted from the code.
+
+It cannot see, and this file may therefore be wrong about:
+
+* **HUD buttons and panels** — those issue commands from `scripts/ui/`, not the input map
+* **what a command does**, as opposed to what it is bound to — every "Effect" cell below
+  is unverified prose
+* input handled outside `scripts/main.gd` as raw events: mouse wheel, gestures, joypad,
+  double-click, or `Shortcut` resources set on buttons in a `.tscn`
+* anything a player rebinds at runtime, once Milestone 15 ships a settings screen
+
+Treat the Input and Action columns as checked, and the Effect column as documentation.
 
 ## Selection
 
@@ -101,6 +118,11 @@ camera does not respond to WASD.
 Note that `camera_left` and `attack_move` are **both bound to <kbd>A</kbd>**. Whoever
 implements keyboard panning has to resolve that collision first, or holding <kbd>A</kbd>
 to pan will also arm an attack-move.
+
+<!-- Raw keycodes main.gd handles directly, outside the input map. Compared two-way
+     against a scan of main.gd, so deleting a KEY_* branch fails the build here rather
+     than leaving this file promising a hotkey nothing handles. -->
+<!-- raw-keys: 1, 5, B -->
 
 <!-- Machine-readable manifest for tests/unit/test_controls_doc.gd, as name:key pairs.
      Keep in sync with the input map in project.godot — including the key, not just the

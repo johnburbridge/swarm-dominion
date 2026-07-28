@@ -9,7 +9,7 @@ anchor_top = 1.0
 anchor_bottom = 1.0
 offset_left = 10.0
 offset_top = -60.0
-offset_right = 400.0
+offset_right = 590.0
 offset_bottom = -10.0
 grow_vertical = 0
 mouse_filter = 2
@@ -32,3 +32,13 @@ offset_bottom = 40.0
 custom_minimum_size = Vector2(180, 40)
 mouse_filter = 0
 text = "Set Rally"
+
+[node name="ClearRallyButton" type="Button" parent="."]
+visible = false
+layout_mode = 1
+offset_left = 380.0
+offset_right = 560.0
+offset_bottom = 40.0
+custom_minimum_size = Vector2(180, 40)
+mouse_filter = 0
+text = "Clear Rally"

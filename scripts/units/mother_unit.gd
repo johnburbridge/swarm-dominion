@@ -82,6 +82,20 @@ func set_rally_point(pos: Vector2) -> void:
 	if _rally_marker != null:
 		_rally_marker.global_position = pos
 		_rally_marker.visible = _is_selected
+	EventBus.mother_rally_changed.emit(self)
+
+
+## Drops the explicit rally, reverting this Mother to the heading-aware default in
+## get_effective_rally() (SPI-1453). Clearing the flag rather than only hiding the
+## marker is what makes it stick: set_selected() re-shows the marker on
+## `selected and _has_rally`, so a flag left set would resurrect it on reselect.
+## Idempotent — clearing a Mother that has no rally is a no-op.
+func clear_rally() -> void:
+	_rally_point = Vector2.ZERO
+	_has_rally = false
+	if _rally_marker != null:
+		_rally_marker.visible = false
+	EventBus.mother_rally_changed.emit(self)
 
 
 func has_rally() -> bool:

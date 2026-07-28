@@ -46,6 +46,10 @@ git lfs pull
 godot project.godot
 ```
 
+### Playing
+
+See [docs/CONTROLS.md](docs/CONTROLS.md) for every input the game currently responds to.
+
 ### Running Tests
 
 ```bash

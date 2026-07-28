@@ -20,6 +20,9 @@ You can only select your own units.
 | Left click empty ground | `select` | Clear the selection |
 | Left click + drag | `select` | Box-select every one of your units inside the box |
 
+`select` must stay bound to a **mouse button** — the handlers test for a mouse-button
+event before consulting the action, so rebinding it to a key silently does nothing.
+
 ## Unit commands
 
 | Input | Action | Effect |
@@ -61,12 +64,22 @@ returns you to.
 
 ## Camera
 
-| Input | Effect |
-|---|---|
-| Left click the minimap | Jump the camera to that point |
-| <kbd>1</kbd>–<kbd>5</kbd> twice quickly | Centre on that control group |
+| Input | Action | Effect |
+|---|---|---|
+| Left click the minimap | `select` | Jump the camera to that point |
+| <kbd>1</kbd>–<kbd>5</kbd> twice quickly | — | Centre on that control group |
 
 There is no keyboard panning or zoom yet — see below.
+
+## Game
+
+| Input | Action | Effect |
+|---|---|---|
+| <kbd>Esc</kbd> | `ui_cancel` | Pause, or resume if already paused |
+
+`ui_cancel` is a Godot engine-default action rather than one this project declares, so
+it is absent from the manifest at the bottom of this file. It still drives real
+behaviour, which is why the drift guard also checks every action the code reads.
 
 ## Debug
 
@@ -74,7 +87,10 @@ Not player-facing; present in development builds.
 
 | Input | Effect |
 |---|---|
-| <kbd>B</kbd> | Spawn a Drone from your Mother, bypassing the HUD (temporary, SPI-1422) |
+| <kbd>B</kbd> | Spawn a Drone, bypassing the HUD (temporary, SPI-1422) |
+
+<kbd>B</kbd> uses the first Mother of yours found when the map loads, **not** whichever
+one you have selected.
 
 ## Declared but not implemented
 
@@ -86,6 +102,7 @@ Note that `camera_left` and `attack_move` are **both bound to <kbd>A</kbd>**. Wh
 implements keyboard panning has to resolve that collision first, or holding <kbd>A</kbd>
 to pan will also arm an attack-move.
 
-<!-- Machine-readable manifest for tests/unit/test_controls_doc.gd. Keep in sync with
-     the input map in project.godot; the drift guard fails the build otherwise. -->
-<!-- input-actions: attack_move, camera_down, camera_left, camera_right, camera_up, clear_rally, command, select, set_rally -->
+<!-- Machine-readable manifest for tests/unit/test_controls_doc.gd, as name:key pairs.
+     Keep in sync with the input map in project.godot — including the key, not just the
+     action name; the drift guard fails the build otherwise. -->
+<!-- input-actions: attack_move:A, camera_down:S, camera_left:A, camera_right:D, camera_up:W, clear_rally:Shift+R, command:MouseRight, select:MouseLeft, set_rally:R -->

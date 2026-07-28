@@ -2,14 +2,24 @@ extends GutTest
 ## Tests for Minimap coordinate projection and configuration (SPI-1373).
 
 var _minimap: Minimap
+var _saved_select_events: Array = []
 
 
 func before_each() -> void:
+	_saved_select_events = InputMap.action_get_events("select").duplicate()
 	_minimap = Minimap.new()
 	_minimap.custom_minimum_size = Minimap.MINIMAP_SIZE
 	_minimap.size = Minimap.MINIMAP_SIZE
 	add_child_autofree(_minimap)
 	await get_tree().process_frame
+
+
+func after_each() -> void:
+	# Snapshot restore, not a hardcoded left button — see test_drag_select.gd. This is
+	# the last test in the file, so a leak here would go undetected by later tests.
+	InputMap.action_erase_events("select")
+	for event in _saved_select_events:
+		InputMap.action_add_event("select", event)
 
 
 # --- Coordinate projection tests ---
@@ -183,3 +193,28 @@ func test_click_at_edge_clamps_camera_to_map_bounds() -> void:
 	var min_cam := Minimap.MAP_ORIGIN + half_vp
 	assert_almost_eq(camera.global_position.x, min_cam.x, 0.01, "camera X should be clamped to min")
 	assert_almost_eq(camera.global_position.y, min_cam.y, 0.01, "camera Y should be clamped to min")
+
+
+# --- select action routing (SPI-1458) ---
+
+
+func test_minimap_navigation_follows_the_select_binding() -> void:
+	# Same contract as main.gd: docs/CONTROLS.md lists minimap click under `select`.
+	var camera := Camera2D.new()
+	add_child_autofree(camera)
+	_minimap.set_camera(camera)
+	var before := camera.global_position
+	InputMap.action_erase_events("select")
+	var bound := InputEventMouseButton.new()
+	bound.button_index = MOUSE_BUTTON_MIDDLE
+	bound.pressed = true
+	InputMap.action_add_event("select", bound)
+
+	var click := InputEventMouseButton.new()
+	click.button_index = MOUSE_BUTTON_MIDDLE
+	click.pressed = true
+	click.position = Minimap.MINIMAP_SIZE / 2.0
+	_minimap._gui_input(click)
+	assert_ne(
+		camera.global_position, before, "minimap navigation should follow the `select` binding"
+	)

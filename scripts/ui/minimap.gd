@@ -78,7 +78,8 @@ func _draw() -> void:
 func _gui_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton:
 		var mb_event: InputEventMouseButton = event as InputEventMouseButton
-		if mb_event.button_index == MOUSE_BUTTON_LEFT and mb_event.pressed:
+		# is_action, not a hardcoded button — see the note in main.gd._unhandled_input.
+		if mb_event.is_action("select") and mb_event.pressed:
 			var local_pos: Vector2 = mb_event.position
 			var world_pos := clamp_to_map(minimap_to_world(local_pos))
 			if _camera != null and is_instance_valid(_camera):

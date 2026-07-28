@@ -71,8 +71,19 @@ func test_sprite_is_rotated_not_mirrored() -> void:
 	# Rotation replaces the old flip_h mirror rather than supplementing it; leaving
 	# both in place would mirror an already-turned sprite.
 	var drone := _create_drone(Vector2(400, 300))
-	await _send(drone, Vector2(-200, 0))
+	var heading: Vector2 = await _send(drone, Vector2(-200, 0))
 	assert_false(drone._sprite.flip_h, "a westbound unit should turn, not flip")
+	assert_almost_eq(_facing(drone).dot(heading), 1.0, 0.001, "and it should point west")
+
+
+func test_facing_turns_back_when_the_heading_reverses() -> void:
+	# North is the one direction a turned-away unit must be able to return to, and
+	# the one the other tests avoid asserting because it is the art's rest pose.
+	var drone := _create_drone(Vector2(400, 300))
+	await _send(drone, Vector2(0, 200))
+	assert_almost_eq(_facing(drone).dot(Vector2.DOWN), 1.0, 0.001, "precondition: turned south")
+	var heading: Vector2 = await _send(drone, Vector2(0, -200))
+	assert_almost_eq(_facing(drone).dot(heading), 1.0, 0.001, "reversing should turn it back north")
 
 
 func test_facing_is_retained_when_the_unit_goes_idle() -> void:

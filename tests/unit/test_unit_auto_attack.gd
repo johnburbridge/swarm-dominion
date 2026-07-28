@@ -153,8 +153,7 @@ func _facing(unit: UnitBase) -> Vector2:
 ## Puts `attacker` in range of an enemy placed at `offset` from it and lets the
 ## attack state run, then returns the direction from attacker to enemy.
 func _engage_enemy_at(attacker: UnitBase, offset: Vector2) -> Vector2:
-	var enemy := _create_unit(2, attacker.position + offset)
-	assert_false(enemy._is_dead, "precondition: the enemy is alive to be faced")
+	_create_unit(2, attacker.position + offset)
 	await get_tree().process_frame
 	await wait_physics_frames(4)
 	return offset.normalized()

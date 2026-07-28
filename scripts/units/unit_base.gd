@@ -18,6 +18,10 @@ const TEAM_COLOR_SHADER := preload("res://assets/shaders/team_color.gdshader")
 ## The creature art faces up (-Y) while Vector2.angle() measures from +X, so the
 ## sprite needs a quarter-turn clockwise to line up (SPI-1455). Single place to
 ## change if the art bible ever settles on a different forward axis.
+## Because the offset is added to an angle() result in (-PI, PI], the stored
+## rotation spans (-PI/2, 3PI/2]. Fine for a snap, which assigns rather than
+## accumulates — but easing this value later must use lerp_angle(), or the sprite
+## will spin the long way round at the wrap boundary.
 const SPRITE_FORWARD_OFFSET: float = PI / 2.0
 
 ## Spawn emerge effect (SPI-1425): a purely cosmetic scale-in + fade-in for a

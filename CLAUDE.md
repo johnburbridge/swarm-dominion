@@ -89,6 +89,13 @@ See @docs/PRD.md for full game design including:
 2. If global, add as autoload in `project.godot`
 3. Connect to EventBus for cross-system communication
 
+## Testing Discipline
+
+A check that cannot fail is worse than no check. Before claiming a test, invariant, drift
+guard or tuned constant is doing its job, follow `.claude/skills/proving-guards-can-fail` —
+in particular, have a subagent generate the mutations for anything whose purpose is
+catching future drift. Mutations you write yourself inherit your own blind spots.
+
 ## Gotchas
 
 - Godot 4 uses `.godot/` for cache (not `.import/`)

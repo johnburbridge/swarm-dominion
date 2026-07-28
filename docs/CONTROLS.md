@@ -74,7 +74,10 @@ Not player-facing; present in development builds.
 
 | Input | Effect |
 |---|---|
-| <kbd>B</kbd> | Spawn a Drone from your Mother, bypassing the HUD (temporary, SPI-1422) |
+| <kbd>B</kbd> | Spawn a Drone, bypassing the HUD (temporary, SPI-1422) |
+
+<kbd>B</kbd> uses the first Mother of yours found when the map loads, **not** whichever
+one you have selected.
 
 ## Declared but not implemented
 
@@ -86,6 +89,7 @@ Note that `camera_left` and `attack_move` are **both bound to <kbd>A</kbd>**. Wh
 implements keyboard panning has to resolve that collision first, or holding <kbd>A</kbd>
 to pan will also arm an attack-move.
 
-<!-- Machine-readable manifest for tests/unit/test_controls_doc.gd. Keep in sync with
-     the input map in project.godot; the drift guard fails the build otherwise. -->
-<!-- input-actions: attack_move, camera_down, camera_left, camera_right, camera_up, clear_rally, command, select, set_rally -->
+<!-- Machine-readable manifest for tests/unit/test_controls_doc.gd, as name:key pairs.
+     Keep in sync with the input map in project.godot — including the key, not just the
+     action name; the drift guard fails the build otherwise. -->
+<!-- input-actions: attack_move:A, camera_down:S, camera_left:A, camera_right:D, camera_up:W, clear_rally:Shift+R, command:MouseRight, select:MouseLeft, set_rally:R -->

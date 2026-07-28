@@ -183,3 +183,34 @@ func test_click_at_edge_clamps_camera_to_map_bounds() -> void:
 	var min_cam := Minimap.MAP_ORIGIN + half_vp
 	assert_almost_eq(camera.global_position.x, min_cam.x, 0.01, "camera X should be clamped to min")
 	assert_almost_eq(camera.global_position.y, min_cam.y, 0.01, "camera Y should be clamped to min")
+
+
+# --- select action routing (SPI-1458) ---
+
+
+func test_minimap_navigation_follows_the_select_binding() -> void:
+	# Same contract as main.gd: docs/CONTROLS.md lists minimap click under `select`.
+	var camera := Camera2D.new()
+	add_child_autofree(camera)
+	_minimap.set_camera(camera)
+	var before := camera.global_position
+	InputMap.action_erase_events("select")
+	var bound := InputEventMouseButton.new()
+	bound.button_index = MOUSE_BUTTON_MIDDLE
+	bound.pressed = true
+	InputMap.action_add_event("select", bound)
+
+	var click := InputEventMouseButton.new()
+	click.button_index = MOUSE_BUTTON_MIDDLE
+	click.pressed = true
+	click.position = Minimap.MINIMAP_SIZE / 2.0
+	_minimap._gui_input(click)
+	var moved: bool = camera.global_position != before
+
+	InputMap.action_erase_events("select")
+	var restore := InputEventMouseButton.new()
+	restore.button_index = MOUSE_BUTTON_LEFT
+	restore.pressed = true
+	InputMap.action_add_event("select", restore)
+
+	assert_true(moved, "minimap navigation should follow the `select` binding")

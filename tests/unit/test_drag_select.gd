@@ -126,3 +126,59 @@ func test_drag_select_empty_area_deselects() -> void:
 
 	var result := SelectionManager.get_selected_units()
 	assert_eq(result.size(), 0, "should deselect all when drag area is empty")
+
+
+# --- select action routing (SPI-1458) ---
+
+
+## Rebinds `select` to the middle mouse button for one test, so the assertion can only
+## pass if main.gd reads the action rather than hardcoding MOUSE_BUTTON_LEFT. Restored
+## by _restore_select_binding(); InputMap is global state.
+func _rebind_select_to_middle() -> void:
+	InputMap.action_erase_events("select")
+	var ev := InputEventMouseButton.new()
+	ev.button_index = MOUSE_BUTTON_MIDDLE
+	ev.pressed = true
+	InputMap.action_add_event("select", ev)
+
+
+func _restore_select_binding() -> void:
+	InputMap.action_erase_events("select")
+	var ev := InputEventMouseButton.new()
+	ev.button_index = MOUSE_BUTTON_LEFT
+	ev.pressed = true
+	InputMap.action_add_event("select", ev)
+
+
+func _mouse_event(button: int, pressed: bool) -> InputEventMouseButton:
+	var ev := InputEventMouseButton.new()
+	ev.button_index = button
+	ev.pressed = pressed
+	ev.position = Vector2(100, 100)
+	return ev
+
+
+func test_select_action_drives_click_selection() -> void:
+	# docs/CONTROLS.md credits the `select` action for click and drag selection, and
+	# promises the Action column is what you would rebind. That is only true if main.gd
+	# routes through the action instead of hardcoding the left button.
+	var main := load("res://scenes/main/main.tscn").instantiate() as Node2D
+	add_child_autofree(main)
+	await get_tree().process_frame
+	_rebind_select_to_middle()
+	main._unhandled_input(_mouse_event(MOUSE_BUTTON_MIDDLE, true))
+	var pressed_after_rebind: bool = main._is_select_pressed
+	_restore_select_binding()
+	assert_true(
+		pressed_after_rebind, "selection should follow the `select` binding, not a hardcoded button"
+	)
+
+
+func test_select_release_ends_the_drag_through_the_action() -> void:
+	var main := load("res://scenes/main/main.tscn").instantiate() as Node2D
+	add_child_autofree(main)
+	await get_tree().process_frame
+	main._unhandled_input(_mouse_event(MOUSE_BUTTON_LEFT, true))
+	assert_true(main._is_select_pressed, "precondition: press armed the selection")
+	main._unhandled_input(_mouse_event(MOUSE_BUTTON_LEFT, false))
+	assert_false(main._is_select_pressed, "release should end the selection gesture")

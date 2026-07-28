@@ -8,6 +8,9 @@ signal unit_died(unit: Node)
 signal unit_selected(unit: Node)
 signal unit_deselected(unit: Node)
 signal unit_attacked(attacker: Node, target: Node, damage: int)
+## A Mother's rally point was set or cleared (SPI-1453). Lets the HUD react to a
+## rally placed by a map click, which happens with no selection change to key off.
+signal mother_rally_changed(mother: Node)
 
 # Resource events
 signal resources_changed(player_id: int, new_amount: int)

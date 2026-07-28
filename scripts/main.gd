@@ -28,6 +28,7 @@ func _ready() -> void:
 	_load_map("res://data/map_definitions/test_arena.json")
 	_minimap.set_camera(_camera)
 	_spawn_panel.rally_set_requested.connect(_on_rally_set_requested)
+	_spawn_panel.rally_clear_requested.connect(_issue_clear_rally)
 
 
 func _load_map(path: String) -> void:
@@ -66,7 +67,12 @@ func _unhandled_input(event: InputEvent) -> void:
 		_update_drag(event.position)
 	elif event.is_action_pressed("attack_move"):
 		_attack_move_pending = true
-	elif event.is_action_pressed("set_rally"):
+	elif event.is_action_pressed("clear_rally"):
+		_issue_clear_rally()
+	elif event.is_action_pressed("set_rally", false, true):
+		# exact_match: Godot matches actions loosely by default, so a Shift+R event
+		# also satisfies the unmodified set_rally binding. Without this, clearing a
+		# rally would re-arm placement in the same keypress.
 		_arm_rally_from_hotkey()
 	elif event is InputEventKey and event.pressed and not event.echo:
 		var key: int = event.keycode
@@ -175,6 +181,16 @@ func _issue_set_rally(pos: Vector2) -> void:
 	for unit in SelectionManager.get_selected_units():
 		if is_instance_valid(unit) and unit is MotherUnit and unit.team_id == PLAYER_TEAM_ID:
 			unit.set_rally_point(pos)
+
+
+## Reverts every selected player Mother to the default rally (SPI-1453). Disarms any
+## pending placement first: a player who armed placement and then asked to clear
+## would otherwise set a fresh rally on their next left-click, undoing the clear.
+func _issue_clear_rally() -> void:
+	_rally_set_pending = false
+	for unit in SelectionManager.get_selected_units():
+		if is_instance_valid(unit) and unit is MotherUnit and unit.team_id == PLAYER_TEAM_ID:
+			unit.clear_rally()
 
 
 func _recall_group(index: int) -> void:

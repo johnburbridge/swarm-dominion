@@ -257,3 +257,96 @@ func test_main_scene_has_spawn_panel_under_ui_hidden() -> void:
 	assert_not_null(panel, "main.tscn should have a SpawnPanel at UI/SpawnPanel")
 	if panel != null:
 		assert_false(panel.visible, "SpawnPanel should be hidden on load (no selection)")
+
+
+# --- clear rally (SPI-1453) ---
+
+
+func _clear_button(panel: Control) -> Button:
+	return panel.get_node_or_null("ClearRallyButton") as Button
+
+
+func test_panel_has_clear_rally_button() -> void:
+	var panel := await _instantiate_panel()
+	assert_not_null(
+		_clear_button(panel), "SpawnPanel should have a Button child named 'ClearRallyButton'"
+	)
+
+
+func test_clear_rally_button_hidden_when_mother_has_no_rally() -> void:
+	# Contextual: the panel already carries Spawn + Set Rally, so the clear control
+	# only earns its width once there is actually a rally to clear.
+	var panel := await _instantiate_panel()
+	var mother := _make_mother(PLAYER_TEAM)
+	SelectionManager.select_unit(mother)
+	var button := _clear_button(panel)
+	assert_not_null(button, "ClearRallyButton should exist")
+	if button != null:
+		assert_false(button.visible, "clear should be hidden for a Mother with no rally")
+
+
+func test_clear_rally_button_shown_when_mother_has_a_rally() -> void:
+	var panel := await _instantiate_panel()
+	var mother := _make_mother(PLAYER_TEAM)
+	mother.set_rally_point(Vector2(700, 500))
+	SelectionManager.select_unit(mother)
+	var button := _clear_button(panel)
+	assert_not_null(button, "ClearRallyButton should exist")
+	if button != null:
+		assert_true(button.visible, "clear should be shown for a Mother with a rally")
+
+
+func test_clear_rally_button_appears_live_when_a_rally_is_set() -> void:
+	# The rally is set by a map click while the panel is already open, so visibility
+	# cannot wait for the next selection change.
+	var panel := await _instantiate_panel()
+	var mother := _make_mother(PLAYER_TEAM)
+	SelectionManager.select_unit(mother)
+	var button := _clear_button(panel)
+	assert_not_null(button, "ClearRallyButton should exist")
+	if button == null:
+		return
+	assert_false(button.visible, "precondition: hidden with no rally")
+	mother.set_rally_point(Vector2(700, 500))
+	assert_true(button.visible, "clear should appear as soon as a rally is set")
+
+
+func test_clear_rally_button_hides_live_when_the_rally_is_cleared() -> void:
+	var panel := await _instantiate_panel()
+	var mother := _make_mother(PLAYER_TEAM)
+	mother.set_rally_point(Vector2(700, 500))
+	SelectionManager.select_unit(mother)
+	var button := _clear_button(panel)
+	assert_not_null(button, "ClearRallyButton should exist")
+	if button == null:
+		return
+	assert_true(button.visible, "precondition: shown with a rally")
+	mother.clear_rally()
+	assert_false(button.visible, "clear should hide once the rally is gone")
+
+
+func test_clear_rally_button_emits_request() -> void:
+	var panel := await _instantiate_panel()
+	var mother := _make_mother(PLAYER_TEAM)
+	mother.set_rally_point(Vector2(700, 500))
+	SelectionManager.select_unit(mother)
+	watch_signals(panel)
+	var button := _clear_button(panel)
+	assert_not_null(button, "ClearRallyButton should exist")
+	if button != null:
+		button.pressed.emit()
+		assert_signal_emitted(panel, "rally_clear_requested", "clicking should request a clear")
+
+
+func test_another_mothers_rally_change_does_not_disturb_the_panel() -> void:
+	# The panel tracks one Mother; an unrelated Mother's rally must not flip its
+	# button, or a second Mother on the map would drive the HUD.
+	var panel := await _instantiate_panel()
+	var shown := _make_mother(PLAYER_TEAM)
+	var other := _make_mother(PLAYER_TEAM)
+	SelectionManager.select_unit(shown)
+	var button := _clear_button(panel)
+	assert_not_null(button, "ClearRallyButton should exist")
+	if button != null:
+		other.set_rally_point(Vector2(700, 500))
+		assert_false(button.visible, "an unselected Mother's rally must not show the button")

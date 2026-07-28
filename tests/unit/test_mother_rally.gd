@@ -152,6 +152,82 @@ func test_spawned_drone_targets_the_rear_default_rally() -> void:
 	assert_lt(offset.dot(heading), 0.0, "Drone should be sent behind the moving Mother")
 
 
+func test_clear_rally_drops_the_explicit_point() -> void:
+	# SPI-1453: _has_rally was one-way, so a Mother could never return to the
+	# heading-aware default after a single rally click.
+	var mother := _create_mother(1, Vector2(400, 300))
+	mother.set_rally_point(Vector2(700, 500))
+	mother.clear_rally()
+	assert_false(mother.has_rally(), "clearing should drop the explicit rally")
+	assert_eq(
+		mother.get_effective_rally(),
+		Vector2(400, 300) + Vector2(0, 96),
+		"a cleared Mother falls back to the default rally"
+	)
+
+
+func test_clear_rally_hides_the_marker() -> void:
+	var mother := _create_mother(1, Vector2(400, 300))
+	mother.set_rally_point(Vector2(700, 500))
+	mother.set_selected(true)
+	assert_true(mother._rally_marker.visible, "precondition: the marker is showing")
+	mother.clear_rally()
+	assert_false(mother._rally_marker.visible, "the marker should hide when the rally is cleared")
+
+
+func test_clear_rally_without_one_set_is_a_noop() -> void:
+	var mother := _create_mother(1, Vector2(400, 300))
+	mother.set_selected(true)
+	mother.clear_rally()
+	assert_false(mother.has_rally(), "clearing a Mother with no rally leaves her with none")
+	assert_false(mother._rally_marker.visible, "and the marker stays hidden")
+
+
+func test_reselecting_a_cleared_mother_does_not_resurrect_the_marker() -> void:
+	# set_selected() shows the marker on `selected and _has_rally`, so a clear that
+	# only hid the marker without dropping the flag would come back on reselect.
+	var mother := _create_mother(1, Vector2(400, 300))
+	mother.set_rally_point(Vector2(700, 500))
+	mother.clear_rally()
+	mother.set_selected(true)
+	assert_false(mother._rally_marker.visible, "a cleared rally must not reappear on reselect")
+
+
+func test_spawned_drone_uses_the_default_after_clearing() -> void:
+	var mother := _create_mother(1, Vector2(400, 300))
+	ResourceManager.add_resources(1, 100)
+	mother.set_rally_point(Vector2(900, 700))
+	mother.clear_rally()
+	var drone := mother.spawn_unit()
+	autofree(drone)
+	assert_not_null(drone, "spawn should succeed")
+	assert_eq(
+		drone._target_position,
+		Vector2(400, 300) + Vector2(0, 96),
+		"a Drone spawned after clearing goes to the default, not the old point"
+	)
+
+
+func test_clearing_restores_the_heading_aware_default() -> void:
+	# The whole point of SPI-1453: "gather behind me as I move" (SPI-1429) has to be
+	# reachable again after a rally click, not just the straight-down default.
+	var mother := _create_mother(1, Vector2(400, 300))
+	mother.set_rally_point(Vector2(900, 700))
+	var heading := _send(mother, Vector2(0, 200))  # moving south
+	mother.clear_rally()
+	var offset := mother.get_effective_rally() - mother.position
+	assert_lt(offset.dot(heading), 0.0, "a cleared, moving Mother rallies behind her again")
+
+
+func test_rally_can_be_set_again_after_clearing() -> void:
+	var mother := _create_mother(1, Vector2(400, 300))
+	mother.set_rally_point(Vector2(700, 500))
+	mother.clear_rally()
+	mother.set_rally_point(Vector2(200, 100))
+	assert_true(mother.has_rally(), "setting a rally after a clear should work")
+	assert_eq(mother.get_effective_rally(), Vector2(200, 100), "and it should be the new point")
+
+
 func test_marker_hidden_when_unselected() -> void:
 	var mother := _create_mother(1, Vector2(400, 300))
 	mother.set_rally_point(Vector2(700, 500))

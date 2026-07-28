@@ -144,28 +144,35 @@ func test_unit_attacked_signal_emitted() -> void:
 # -- Facing target (AC4) --
 
 
-func test_faces_right_for_right_enemy() -> void:
-	var attacker := _create_unit(1, Vector2(0, 0))
-	var enemy := _create_unit(2, Vector2(50, 0))
+## The world-space direction the sprite's art points; see test_unit_facing.gd for
+## why facing is asserted this way rather than on `rotation` directly.
+func _facing(unit: UnitBase) -> Vector2:
+	return Vector2.UP.rotated(unit._sprite.rotation)
+
+
+## Puts `attacker` in range of an enemy placed at `offset` from it and lets the
+## attack state run, then returns the direction from attacker to enemy.
+func _engage_enemy_at(attacker: UnitBase, offset: Vector2) -> Vector2:
+	_create_unit(2, attacker.position + offset)
 	await get_tree().process_frame
-	await get_tree().physics_frame
-	await get_tree().physics_frame
-	await get_tree().physics_frame
-	await get_tree().physics_frame
-	var sprite: AnimatedSprite2D = attacker.get_node("AnimatedSprite2D")
-	assert_false(sprite.flip_h, "flip_h should be false when enemy is to the right")
+	await wait_physics_frames(4)
+	return offset.normalized()
+
+
+func test_faces_right_for_right_enemy() -> void:
+	# SPI-1455: rotation replaced the flip_h mirror here too.
+	var attacker := _create_unit(1, Vector2(0, 0))
+	var heading: Vector2 = await _engage_enemy_at(attacker, Vector2(50, 0))
+	assert_eq(attacker._state, UnitBase.UnitState.ATTACKING, "precondition: attacking the enemy")
+	assert_almost_eq(_facing(attacker).dot(heading), 1.0, 0.001, "attacker should point right")
 
 
 func test_faces_left_for_left_enemy() -> void:
 	var attacker := _create_unit(1, Vector2(50, 0))
-	var enemy := _create_unit(2, Vector2(0, 0))
-	await get_tree().process_frame
-	await get_tree().physics_frame
-	await get_tree().physics_frame
-	await get_tree().physics_frame
-	await get_tree().physics_frame
-	var sprite: AnimatedSprite2D = attacker.get_node("AnimatedSprite2D")
-	assert_true(sprite.flip_h, "flip_h should be true when enemy is to the left")
+	var heading: Vector2 = await _engage_enemy_at(attacker, Vector2(-50, 0))
+	assert_eq(attacker._state, UnitBase.UnitState.ATTACKING, "precondition: attacking the enemy")
+	assert_almost_eq(_facing(attacker).dot(heading), 1.0, 0.001, "attacker should point left")
+	assert_false(attacker._sprite.flip_h, "the attacker should turn, not flip")
 
 
 # -- Stop attacking (AC5) --
@@ -281,9 +288,7 @@ func test_clears_target_when_enemy_leaves_range() -> void:
 	await get_tree().physics_frame
 	await get_tree().physics_frame
 	await get_tree().physics_frame
-	assert_null(
-		attacker._attack_target, "Should clear target when enemy leaves range"
-	)
+	assert_null(attacker._attack_target, "Should clear target when enemy leaves range")
 
 
 func test_no_attack_area_when_range_zero() -> void:

@@ -14,6 +14,16 @@ const ARRIVAL_THRESHOLD: float = 5.0
 ## Palette-swap shader that recolors the sprite's team-color key region (SPI-1436).
 const TEAM_COLOR_SHADER := preload("res://assets/shaders/team_color.gdshader")
 
+## Rotation that aligns the sprite's art with a heading of angle 0 (due east).
+## The creature art faces up (-Y) while Vector2.angle() measures from +X, so the
+## sprite needs a quarter-turn clockwise to line up (SPI-1455). Single place to
+## change if the art bible ever settles on a different forward axis.
+## Because the offset is added to an angle() result in (-PI, PI], the stored
+## rotation spans (-PI/2, 3PI/2]. Fine for a snap, which assigns rather than
+## accumulates — but easing this value later must use lerp_angle(), or the sprite
+## will spin the long way round at the wrap boundary.
+const SPRITE_FORWARD_OFFSET: float = PI / 2.0
+
 ## Spawn emerge effect (SPI-1425): a purely cosmetic scale-in + fade-in for a
 ## freshly Mother-spawned unit. Visual only — never touches position/state.
 const EMERGE_DURATION: float = 0.25
@@ -335,10 +345,7 @@ func _process_attacking(delta: float) -> void:
 			_try_acquire_target()
 		return
 
-	# Face the target
-	var dir_x := _attack_target.global_position.x - global_position.x
-	if abs(dir_x) > 0.1:
-		_sprite.flip_h = dir_x < 0
+	_face_direction(_attack_target.global_position - global_position)
 
 	_attack_cooldown -= delta
 	if _attack_cooldown <= 0.0:
@@ -479,11 +486,22 @@ func _update_animation(direction: Vector2 = Vector2.ZERO) -> void:
 			_sprite.play("idle")
 
 
-## Plays the walk animation and flips the sprite to face the movement
+## Plays the walk animation and turns the sprite to face the movement
 ## direction. Used by moving states and by the HARVESTING approach leg
 ## (which is not counted by `_is_moving` but still slides toward the node).
 func _play_walk_animation(direction: Vector2) -> void:
-	if abs(direction.x) > 0.1:
-		_sprite.flip_h = direction.x < 0
+	_face_direction(direction)
 	if _sprite.animation != "walk":
 		_sprite.play("walk")
+
+
+## Snaps the sprite to point along `direction` (SPI-1455). Cosmetic only: it turns
+## the AnimatedSprite2D and never the body, so position, collision, and the upright
+## HealthBar / HarvestIndicator / selection-circle siblings are untouched and
+## lockstep determinism is unaffected — nothing reads this rotation back.
+## A zero direction leaves the current facing alone, so a unit that stops keeps the
+## heading it stopped with instead of snapping to a default.
+func _face_direction(direction: Vector2) -> void:
+	if direction.is_zero_approx():
+		return
+	_sprite.rotation = direction.angle() + SPRITE_FORWARD_OFFSET

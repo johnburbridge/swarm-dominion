@@ -1,0 +1,91 @@
+# Controls
+
+Every input the game currently responds to. If a binding is not listed here, it does
+not exist yet.
+
+The `Action` column gives the input-map name from `project.godot`, for anyone
+rebinding or reading the code. Bindings with no action name are handled directly in
+`scripts/main.gd`.
+
+An in-game controls screen is planned for Milestone 15; until then this file is the
+reference.
+
+## Selection
+
+You can only select your own units.
+
+| Input | Action | Effect |
+|---|---|---|
+| Left click a unit | `select` | Select that unit |
+| Left click empty ground | `select` | Clear the selection |
+| Left click + drag | `select` | Box-select every one of your units inside the box |
+
+## Unit commands
+
+| Input | Action | Effect |
+|---|---|---|
+| Right click ground | `command` | Move the selection there |
+| Right click an enemy | `command` | Attack it — the selection spreads around the target rather than stacking |
+| Right click a biomass node | `command` | Harvest it. A depleted node falls through to a move order |
+| <kbd>A</kbd>, then left click | `attack_move` | Attack-move to that point: travel there, engaging anything met on the way |
+
+<kbd>A</kbd> **arms** the order; the *next left click* issues it. If both attack-move and
+rally placement are armed, rally placement wins.
+
+## Mother commands
+
+A Mother shows a command panel at the bottom of the screen while selected.
+
+| Input | Action | Effect |
+|---|---|---|
+| <kbd>R</kbd>, then left click | `set_rally` | Set the rally point — newly spawned Drones walk there |
+| <kbd>Shift</kbd>+<kbd>R</kbd> | `clear_rally` | Clear the rally, reverting to the default |
+| **Spawn Drone** button | — | Spawn a Drone. Greyed out when you cannot afford one |
+| **Set Rally** button | — | Same as <kbd>R</kbd> |
+| **Clear Rally** button | — | Same as <kbd>Shift</kbd>+<kbd>R</kbd>. Only appears when a rally is set |
+
+<kbd>R</kbd> only arms if at least one of your Mothers is selected. Both rally
+commands apply to *every* selected Mother you own.
+
+With no explicit rally, spawned Drones gather just behind the Mother — trailing her
+when she is moving, directly below her when she is still. That is what **Clear Rally**
+returns you to.
+
+## Control groups
+
+| Input | Effect |
+|---|---|
+| <kbd>Ctrl</kbd>+<kbd>1</kbd>–<kbd>5</kbd> | Assign the current selection to that group |
+| <kbd>1</kbd>–<kbd>5</kbd> | Select that group |
+| <kbd>1</kbd>–<kbd>5</kbd> twice quickly | Select it and centre the camera on it (within 0.3s) |
+
+## Camera
+
+| Input | Effect |
+|---|---|
+| Left click the minimap | Jump the camera to that point |
+| <kbd>1</kbd>–<kbd>5</kbd> twice quickly | Centre on that control group |
+
+There is no keyboard panning or zoom yet — see below.
+
+## Debug
+
+Not player-facing; present in development builds.
+
+| Input | Effect |
+|---|---|
+| <kbd>B</kbd> | Spawn a Drone from your Mother, bypassing the HUD (temporary, SPI-1422) |
+
+## Declared but not implemented
+
+`camera_up` (<kbd>W</kbd>), `camera_down` (<kbd>S</kbd>), `camera_left` (<kbd>A</kbd>)
+and `camera_right` (<kbd>D</kbd>) exist in the input map, but nothing reads them — the
+camera does not respond to WASD.
+
+Note that `camera_left` and `attack_move` are **both bound to <kbd>A</kbd>**. Whoever
+implements keyboard panning has to resolve that collision first, or holding <kbd>A</kbd>
+to pan will also arm an attack-move.
+
+<!-- Machine-readable manifest for tests/unit/test_controls_doc.gd. Keep in sync with
+     the input map in project.godot; the drift guard fails the build otherwise. -->
+<!-- input-actions: attack_move, camera_down, camera_left, camera_right, camera_up, clear_rally, command, select, set_rally -->

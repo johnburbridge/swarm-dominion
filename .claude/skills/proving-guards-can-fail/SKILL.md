@@ -64,6 +64,23 @@ each assertion, and confirm each one is reached and can fail.
 If flipping the sign, halving the value, or reverting it to the previous constant leaves
 the suite green, the constant is unpinned regardless of how many tests mention it.
 
+### 5b. Commit before you mutate
+
+`git checkout <file>` restores to **HEAD**, not to your working state. Mutating uncommitted
+work and then "restoring" it destroys the very thing you were verifying — and the run still
+goes green, because it is now testing the old code. Commit a checkpoint (amend or squash it
+later) or copy the file aside before the first mutation.
+
+### 5c. Read the test count after every mutation run, not the summary
+
+GUT prints "All tests passed" while silently skipping a file it could not parse, so a
+mutation that breaks compilation reads as success. Every mutation run must confirm the
+count is what it was before. A run whose count dropped proves nothing and must be redone.
+
+This is also why a mutation that changes *nothing* deserves a second look: it may mean the
+thing you mutated was already inert. A `(?s)` flag on a pattern containing no `.` survived
+exactly that way — mutating it changed no result because it never did anything.
+
 ### 6. Have someone else generate the mutations
 
 For any guard — a drift check, an invariant, a CI rule — dispatch a subagent before
@@ -80,6 +97,18 @@ Do not evaluate whether the check is good. Only enumerate its blind spots.
 ```
 
 Then close or document each one. This is cheap — one small agent, no repo mutation.
+
+## Traps in the verification itself
+
+The procedure above has its own failure modes, all observed while running it:
+
+| Symptom | Cause | What it looks like |
+|---|---|---|
+| Mutation run passes | the test file did not compile and was skipped | test count dropped; summary still says all passed |
+| Mutation run passes | the restore wiped your uncommitted changes | test count dropped to the pre-work number |
+| Mutation changes nothing | you mutated something inert | no test moves in either direction |
+
+All three present identically — a green run — and none of them means the check is sound.
 
 ## Project-specific traps that let vacuous checks survive here
 

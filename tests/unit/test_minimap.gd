@@ -2,14 +2,24 @@ extends GutTest
 ## Tests for Minimap coordinate projection and configuration (SPI-1373).
 
 var _minimap: Minimap
+var _saved_select_events: Array = []
 
 
 func before_each() -> void:
+	_saved_select_events = InputMap.action_get_events("select").duplicate()
 	_minimap = Minimap.new()
 	_minimap.custom_minimum_size = Minimap.MINIMAP_SIZE
 	_minimap.size = Minimap.MINIMAP_SIZE
 	add_child_autofree(_minimap)
 	await get_tree().process_frame
+
+
+func after_each() -> void:
+	# Snapshot restore, not a hardcoded left button — see test_drag_select.gd. This is
+	# the last test in the file, so a leak here would go undetected by later tests.
+	InputMap.action_erase_events("select")
+	for event in _saved_select_events:
+		InputMap.action_add_event("select", event)
 
 
 # --- Coordinate projection tests ---
@@ -205,12 +215,6 @@ func test_minimap_navigation_follows_the_select_binding() -> void:
 	click.pressed = true
 	click.position = Minimap.MINIMAP_SIZE / 2.0
 	_minimap._gui_input(click)
-	var moved: bool = camera.global_position != before
-
-	InputMap.action_erase_events("select")
-	var restore := InputEventMouseButton.new()
-	restore.button_index = MOUSE_BUTTON_LEFT
-	restore.pressed = true
-	InputMap.action_add_event("select", restore)
-
-	assert_true(moved, "minimap navigation should follow the `select` binding")
+	assert_ne(
+		camera.global_position, before, "minimap navigation should follow the `select` binding"
+	)

@@ -3,6 +3,7 @@ extends GutTest
 
 var _selection_box: SelectionBox
 var _drone_scene: PackedScene
+var _saved_select_events: Array = []
 var _unit_a: UnitBase
 var _unit_b: UnitBase
 var _enemy: UnitBase
@@ -14,9 +15,18 @@ func before_all() -> void:
 
 func before_each() -> void:
 	SelectionManager.deselect_all()
+	# InputMap is global; snapshot rather than assuming the shipped binding, so a
+	# future rebind of `select` is not silently rewritten to left-button by these tests.
+	_saved_select_events = InputMap.action_get_events("select").duplicate()
 	_selection_box = SelectionBox.new()
 	add_child_autofree(_selection_box)
 	await get_tree().process_frame
+
+
+func after_each() -> void:
+	InputMap.action_erase_events("select")
+	for event in _saved_select_events:
+		InputMap.action_add_event("select", event)
 
 
 func _make_unit(team: int, pos: Vector2) -> UnitBase:
@@ -132,20 +142,12 @@ func test_drag_select_empty_area_deselects() -> void:
 
 
 ## Rebinds `select` to the middle mouse button for one test, so the assertion can only
-## pass if main.gd reads the action rather than hardcoding MOUSE_BUTTON_LEFT. Restored
-## by _restore_select_binding(); InputMap is global state.
+## pass if main.gd reads the action rather than hardcoding MOUSE_BUTTON_LEFT.
+## after_each restores whatever was bound before.
 func _rebind_select_to_middle() -> void:
 	InputMap.action_erase_events("select")
 	var ev := InputEventMouseButton.new()
 	ev.button_index = MOUSE_BUTTON_MIDDLE
-	ev.pressed = true
-	InputMap.action_add_event("select", ev)
-
-
-func _restore_select_binding() -> void:
-	InputMap.action_erase_events("select")
-	var ev := InputEventMouseButton.new()
-	ev.button_index = MOUSE_BUTTON_LEFT
 	ev.pressed = true
 	InputMap.action_add_event("select", ev)
 
@@ -167,14 +169,13 @@ func test_select_action_drives_click_selection() -> void:
 	await get_tree().process_frame
 	_rebind_select_to_middle()
 	main._unhandled_input(_mouse_event(MOUSE_BUTTON_MIDDLE, true))
-	var pressed_after_rebind: bool = main._is_select_pressed
-	_restore_select_binding()
 	assert_true(
-		pressed_after_rebind, "selection should follow the `select` binding, not a hardcoded button"
+		main._is_select_pressed,
+		"selection should follow the `select` binding, not a hardcoded button"
 	)
 
 
-func test_select_release_ends_the_drag_through_the_action() -> void:
+func test_press_then_release_completes_the_selection_gesture() -> void:
 	var main := load("res://scenes/main/main.tscn").instantiate() as Node2D
 	add_child_autofree(main)
 	await get_tree().process_frame

@@ -20,6 +20,9 @@ You can only select your own units.
 | Left click empty ground | `select` | Clear the selection |
 | Left click + drag | `select` | Box-select every one of your units inside the box |
 
+`select` must stay bound to a **mouse button** — the handlers test for a mouse-button
+event before consulting the action, so rebinding it to a key silently does nothing.
+
 ## Unit commands
 
 | Input | Action | Effect |
@@ -61,12 +64,22 @@ returns you to.
 
 ## Camera
 
-| Input | Effect |
-|---|---|
-| Left click the minimap | Jump the camera to that point |
-| <kbd>1</kbd>–<kbd>5</kbd> twice quickly | Centre on that control group |
+| Input | Action | Effect |
+|---|---|---|
+| Left click the minimap | `select` | Jump the camera to that point |
+| <kbd>1</kbd>–<kbd>5</kbd> twice quickly | — | Centre on that control group |
 
 There is no keyboard panning or zoom yet — see below.
+
+## Game
+
+| Input | Action | Effect |
+|---|---|---|
+| <kbd>Esc</kbd> | `ui_cancel` | Pause, or resume if already paused |
+
+`ui_cancel` is a Godot engine-default action rather than one this project declares, so
+it is absent from the manifest at the bottom of this file. It still drives real
+behaviour, which is why the drift guard also checks every action the code reads.
 
 ## Debug
 

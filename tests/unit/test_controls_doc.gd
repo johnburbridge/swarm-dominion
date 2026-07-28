@@ -38,9 +38,15 @@ func _declared_actions() -> Array:
 
 ## Action names listed in the doc's machine-readable manifest comment.
 func _manifest_actions(text: String) -> Array:
+	# Deduplicated: an action bound to two keys needs two manifest entries to satisfy
+	# the key check, and without this dedup the name check would then reject the
+	# duplicate — leaving no manifest that satisfies both, and no way to add a second
+	# binding without deleting a guard.
 	var entries: Array = []
 	for pair in _manifest_bindings(text):
-		entries.append(str(pair).split(":")[0])
+		var name := str(pair).split(":")[0]
+		if not entries.has(name):
+			entries.append(name)
 	entries.sort()
 	return entries
 
@@ -97,6 +103,48 @@ func _declared_bindings() -> Array:
 	return bindings
 
 
+## Every .gd file under scripts/, recursively.
+func _gd_files(dir_path: String) -> Array:
+	var files: Array = []
+	var dir := DirAccess.open(dir_path)
+	if dir == null:
+		return files
+	dir.list_dir_begin()
+	var entry := dir.get_next()
+	while entry != "":
+		var full := "%s/%s" % [dir_path, entry]
+		if dir.current_is_dir():
+			files.append_array(_gd_files(full))
+		elif entry.ends_with(".gd"):
+			files.append(full)
+		entry = dir.get_next()
+	dir.list_dir_end()
+	return files
+
+
+## Actions the code actually reads, from is_action*() call sites under scripts/.
+## Complements the manifest: that covers what project.godot declares, this covers what
+## is wired up — including engine-default actions like ui_cancel, which drive real
+## behaviour (Escape pauses the game) yet are excluded from the manifest as defaults.
+## Without this check the ui_ exemption is a hole rather than a convenience.
+func _actions_used_in_code() -> Array:
+	var regex := RegEx.new()
+	regex.compile('is_action[a-z_]*\\("(?<action>[a-z_]+)"')
+	var actions: Array = []
+	for path in _gd_files("res://scripts"):
+		var file := FileAccess.open(path, FileAccess.READ)
+		if file == null:
+			continue
+		var source := file.get_as_text()
+		file.close()
+		for m in regex.search_all(source):
+			var name := m.get_string("action")
+			if not actions.has(name):
+				actions.append(name)
+	actions.sort()
+	return actions
+
+
 ## Keys handled as raw KEY_* constants in main.gd, outside the input map entirely.
 func _hardcoded_keys() -> Array:
 	var file := FileAccess.open("res://scripts/main.gd", FileAccess.READ)
@@ -148,6 +196,36 @@ func test_manifest_records_the_key_each_action_is_bound_to() -> void:
 			+ "update it when a binding moves"
 		)
 	)
+
+
+func test_every_action_the_code_reads_is_documented() -> void:
+	# The manifest only sees actions project.godot declares, and the ui_ filter hides
+	# engine-default names. An action can therefore drive real behaviour while every
+	# other check here stays green — which is exactly how Escape/pause went undocumented.
+	var body := _doc_text()
+	var used := _actions_used_in_code()
+	assert_false(used.is_empty(), "the is_action scan of scripts/ should find something to check")
+	for action in used:
+		assert_true(
+			body.contains("`%s`" % action),
+			"docs/CONTROLS.md should document the `%s` action, which scripts/ reads" % action
+		)
+
+
+func test_every_binding_has_a_readable_key_label() -> void:
+	# _binding_label() falls back to "Unknown" for event types it does not handle, and
+	# to "" for a physical-only key. Either would let a manifest entry like
+	# "zoom_in:Unknown" satisfy the key check while telling a reader nothing.
+	for action in _declared_actions():
+		for event in InputMap.action_get_events(action):
+			var label := _binding_label(event)
+			assert_false(
+				label.is_empty() or label == "Unknown",
+				(
+					"`%s` is bound to an event _binding_label() cannot name — teach it that type"
+					% action
+				)
+			)
 
 
 func test_keys_handled_outside_the_input_map_are_documented() -> void:

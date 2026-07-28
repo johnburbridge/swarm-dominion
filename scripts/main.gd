@@ -58,7 +58,9 @@ func _apply_camera_bounds(bounds: Rect2) -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
+	# is_action rather than a hardcoded button so `select` is genuinely rebindable —
+	# docs/CONTROLS.md advertises the action name as the thing you would rebind.
+	if event is InputEventMouseButton and event.is_action("select"):
 		if event.pressed:
 			_begin_select(event.position)
 		else:

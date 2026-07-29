@@ -110,6 +110,10 @@ static func _parse_vec2(value: Variant) -> Variant:
 ## present-but-malformed one warns: silently substituting a 64x64 nub for a wall
 ## someone meant to author changes what the map plays like and what the
 ## navigation mesh bakes, with nothing anywhere saying so.
+## A zero or negative extent is treated the same way. It parses as a Vector2 but
+## is not a shape: RectangleShape2D collides with nothing at zero, and a negative
+## extent is an authoring typo, not a request. Both would open a hole in the
+## level as silently as a dropped entry would.
 static func _parse_size(value: Variant) -> Vector2:
 	if value == null:
 		return DEFAULT_OBSTACLE_SIZE
@@ -117,7 +121,11 @@ static func _parse_size(value: Variant) -> Vector2:
 	if parsed == null:
 		push_warning("MapDefinition: obstacle has a malformed size, using the default")
 		return DEFAULT_OBSTACLE_SIZE
-	return parsed
+	var size: Vector2 = parsed
+	if size.x <= 0.0 or size.y <= 0.0:
+		push_warning("MapDefinition: obstacle size %s is not positive, using the default" % size)
+		return DEFAULT_OBSTACLE_SIZE
+	return size
 
 
 ## Shared skip-and-warn scaffold for parsing a JSON array of entry

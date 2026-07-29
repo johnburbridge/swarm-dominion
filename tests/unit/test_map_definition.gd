@@ -133,6 +133,27 @@ func test_obstacle_with_malformed_size_falls_back_to_default() -> void:
 	assert_engine_error(1, "expected warning for the malformed size")
 
 
+func test_obstacle_with_zero_extent_falls_back_to_default() -> void:
+	# [80, 0] parses as a Vector2 but is not a shape — a zero-height
+	# RectangleShape2D collides with nothing, so the obstacle would be present in
+	# the definition and absent from the level. Same failure the malformed case
+	# guards against, reached through a value that parses cleanly.
+	var def := MapDefinition.from_dict({"obstacles": [{"position": [10, 20], "size": [80, 0]}]})
+	assert_eq(def.obstacles.size(), 1, "obstacle retained")
+	assert_eq(def.obstacles[0]["size"], MapDefinition.DEFAULT_OBSTACLE_SIZE, "default size")
+	assert_engine_error(1, "expected warning for the zero extent")
+
+
+func test_obstacle_with_negative_extent_falls_back_to_default() -> void:
+	# A negative extent is an authoring sign error. RectangleShape2D takes the
+	# absolute value, so the wall silently lands somewhere the author did not
+	# put it rather than failing loudly.
+	var def := MapDefinition.from_dict({"obstacles": [{"position": [10, 20], "size": [-80, 400]}]})
+	assert_eq(def.obstacles.size(), 1, "obstacle retained")
+	assert_eq(def.obstacles[0]["size"], MapDefinition.DEFAULT_OBSTACLE_SIZE, "default size")
+	assert_engine_error(1, "expected warning for the negative extent")
+
+
 func test_obstacle_without_position_is_skipped() -> void:
 	var def := MapDefinition.from_dict({"obstacles": [{"size": [80, 400]}]})
 	assert_eq(def.obstacles.size(), 0, "obstacle without a position skipped")

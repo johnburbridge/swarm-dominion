@@ -14,11 +14,12 @@ extends GutTest
 ## What these checks CANNOT see. Each was found by an adversarial blind-spot
 ## pass (.claude/skills/proving-guards-can-fail) and left open deliberately:
 ##
-## * Mirror symmetry is checked about the vertical axis only. Vertical
-##   asymmetry, and the map's overall entity footprint inside its bounds, are
-##   unguarded — the layout could drift top-heavy and stay green.
-## * Nothing checks entities for overlap, or that the map is traversable.
-##   Obstacles sized to seal the two halves apart would pass.
+## * Mirror symmetry is checked about the vertical axis only. This layout also
+##   mirrors about the horizontal centre line, but nothing asserts that, so the
+##   layout could drift top-heavy and stay green.
+## * Nothing checks entities for overlap, or that the map is traversable. An
+##   obstacle sized to seal the two halves apart but still inside bounds
+##   (80x2160) would pass. What IS guarded is the out-of-bounds variant.
 ## * Degenerate control points pass: capture_radius 0 (uncapturable) and
 ##   vp_weight 0 or negative both satisfy the distribution test.
 ## * PRD 2.6 makes capture *time* vary by strategic value. The data model has no
@@ -29,8 +30,10 @@ extends GutTest
 ##
 ## Verified as CLOSED by mutation, so do not assume they are still free: a
 ## malformed obstacle size, both spawns stacked on the mirror axis, a mirrored
-## pair with differing size/radius/weight/type, and the map scene repointed at
-## a different definition file.
+## pair with differing size/radius/weight/type, the map scene repointed at a
+## different definition file, a symmetry-preserving cull of any category down to
+## a token pair, a duplicated or blanked control-point id, and an obstacle whose
+## extents leave the bounds while its anchor stays inside them.
 
 const GREYBOX_PATH: String = "res://data/map_definitions/greybox_arena.json"
 const MAIN_SCENE_PATH: String = "res://scenes/main/main.tscn"
@@ -47,6 +50,21 @@ const MIRRORED_ATTRIBUTES: Dictionary = {
 	"obstacles": ["size"],
 	"control_points": ["capture_radius", "vp_weight"],
 	"units": ["type"],
+}
+
+## FLOORS against degeneracy, not tuned design targets. Every symmetry check in
+## this file is satisfied by a mirrored pair, so culling a category down to two
+## entities passes everything else green — verified by mutation, 6 biomass nodes
+## to 2 and an 8-drone starting army to 2 both stayed green. These say only
+## "enough entities that the map is still the map"; the real counts belong to
+## balance playtesting and must stay free to move above these numbers.
+## control_points is absent deliberately: its 3-5 band is an acceptance
+## criterion, asserted in test_control_points_follow_the_appendix_a_distribution.
+const MIN_ENTITY_COUNTS: Dictionary = {
+	"spawn_points": 2,
+	"biomass_nodes": 4,
+	"units": 4,
+	"obstacles": 4,
 }
 
 ## Floor on how far apart the two bases sit. Appendix A #2 wants 30-60s of
@@ -201,6 +219,12 @@ func test_control_points_follow_the_appendix_a_distribution() -> void:
 	assert_eq(central.size(), 1, "exactly one high-value point")
 	assert_true(peripheral.size() >= 2, "at least two peripheral points")
 
+	# GUT keeps running after a failed assert, so without this guard a violation
+	# of the line above surfaces as an out-of-bounds engine error rather than as
+	# the message that explains it.
+	if central.is_empty():
+		return
+
 	var map_center := def.bounds.position + def.bounds.size / 2.0
 	assert_eq(central[0]["position"], map_center, "the high-value point sits at map centre")
 	for cp in peripheral:
@@ -208,6 +232,36 @@ func test_control_points_follow_the_appendix_a_distribution() -> void:
 			float(central[0]["capture_radius"]),
 			float(cp["capture_radius"]),
 			"central zone is larger than peripheral zone at %s" % _key(cp["position"])
+		)
+
+
+func test_control_point_ids_are_unique_and_named() -> void:
+	# ids are how M7 (SPI-1338) will address a point for capture and ownership.
+	# Two points sharing one is a silent aliasing bug that every symmetry check
+	# here accepts — verified by mutation, renaming "ne" to "nw" stayed green.
+	var def := _def()
+	var seen: Dictionary = {}
+	for cp in def.control_points:
+		var id: String = cp["id"]
+		assert_false(id.is_empty(), "control point at %s has an id" % _key(cp["position"]))
+		assert_false(seen.has(id), "control point id '%s' is used once" % id)
+		seen[id] = true
+
+
+func test_every_category_has_enough_entities_to_be_a_map() -> void:
+	# See MIN_ENTITY_COUNTS: these are anti-degeneracy floors, not design targets.
+	var def := _def()
+	assert_eq(def.spawn_points.size(), 2, "exactly 2 spawn_points")
+	for category in MIN_ENTITY_COUNTS:
+		if category == "spawn_points":
+			continue
+		var floor_count: int = MIN_ENTITY_COUNTS[category]
+		assert_true(
+			def.get(category).size() >= floor_count,
+			(
+				"%s has at least %d entries (found %d)"
+				% [category, floor_count, def.get(category).size()]
+			)
 		)
 
 
@@ -220,6 +274,26 @@ func test_every_entity_sits_inside_the_map_bounds() -> void:
 				def.bounds.has_point(pos),
 				"%s entity at %s is inside bounds" % [category, _key(pos)]
 			)
+
+
+func test_obstacle_extents_sit_inside_the_map_bounds() -> void:
+	# The anchor test above only sees a centre point. An obstacle is a rect
+	# around that centre, so a wall can be anchored well inside the map and still
+	# stick out of it — verified by mutation, resizing the walls to 80x5000 left
+	# every other check in this file green while ~2340px of wall hung outside the
+	# bounds and sealed the two halves apart.
+	var def := _def()
+	for obstacle in def.obstacles:
+		var pos: Vector2 = obstacle["position"]
+		var size: Vector2 = obstacle["size"]
+		var extents := Rect2(pos - size / 2.0, size)
+		assert_true(
+			def.bounds.encloses(extents),
+			(
+				"obstacle at %s sized %dx%d spans %s and must stay inside bounds %s"
+				% [_key(pos), roundi(size.x), roundi(size.y), extents, def.bounds]
+			)
+		)
 
 
 func test_obstacles_are_present_for_pathfinding_work() -> void:

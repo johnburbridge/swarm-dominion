@@ -17,6 +17,7 @@ var _last_recall_group: int = -1
 var _last_recall_time: float = 0.0
 var _player_mother: MotherUnit = null
 
+@onready var _map: GameMap = $GreyboxArena
 @onready var _camera: Camera2D = $Camera2D
 @onready var _selection_box: SelectionBox = $UI/SelectionBox
 @onready var _minimap: Minimap = $UI/Minimap
@@ -25,27 +26,13 @@ var _player_mother: MotherUnit = null
 
 func _ready() -> void:
 	print("Swarm Dominion initialized")
-	_load_map("res://data/map_definitions/test_arena.json")
+	# The map is a child scene, so its _ready() — and therefore its load — has
+	# already run by the time this fires. Main only reads the result.
+	_player_mother = _map.get_mother_for_team(PLAYER_TEAM_ID)
+	_apply_camera_bounds(_map.get_bounds())
 	_minimap.set_camera(_camera)
 	_spawn_panel.rally_set_requested.connect(_on_rally_set_requested)
 	_spawn_panel.rally_clear_requested.connect(_issue_clear_rally)
-
-
-func _load_map(path: String) -> void:
-	var definition := MapDefinition.from_file(path)
-	if definition == null:
-		push_warning("Main: failed to load map '%s'" % path)
-		return
-	var loaded := MapLoader.populate(definition, self)
-	_player_mother = _find_player_mother(loaded["mothers"])
-	_apply_camera_bounds(definition.bounds)
-
-
-func _find_player_mother(mothers: Array) -> MotherUnit:
-	for m in mothers:
-		if m is MotherUnit and m.team_id == PLAYER_TEAM_ID:
-			return m
-	return null
 
 
 func _apply_camera_bounds(bounds: Rect2) -> void:

@@ -10,10 +10,14 @@ const BiomassNodeScene := preload("res://scenes/resources/biomass_node.tscn")
 const CONTROL_POINT_GROUP: StringName = &"control_points"
 const OBSTACLE_GROUP: StringName = &"obstacles"
 
-## Physics layer 2 (bit value 2). Layer 1 is units, layer 3 (value 4) is biomass
-## nodes — see main.gd's UNIT_COLLISION_MASK / BIOMASS_NODE_COLLISION_MASK. Giving
-## obstacles their own layer keeps them out of the click-to-select point query.
-const OBSTACLE_LAYER: int = 2
+## Physics layer 4 (bit value 8). The three layers below it are all taken:
+## layer 1 (value 1) is unit bodies, layer 2 (value 2) is the units' own
+## attack-detection Area2D (unit_base.gd's _setup_attack_area), and layer 3
+## (value 4) is biomass nodes. See [code][layer_names][/code] in project.godot,
+## which is the authoritative list, and main.gd's UNIT_COLLISION_MASK /
+## BIOMASS_NODE_COLLISION_MASK. Giving obstacles their own layer keeps them out
+## of the click-to-select point query and out of attack target detection.
+const OBSTACLE_LAYER: int = 8
 
 ## Greybox placeholder fill — deliberately drab so real art reads as an upgrade,
 ## and dark enough to hold contrast against the light grid background.

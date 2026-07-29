@@ -21,8 +21,10 @@
     { "id": "se", "position": [1640, 1020], "capture_radius": 96, "vp_weight": 1 }
   ],
   "obstacles": [
-    { "position": [560, 540], "size": [80, 400] },
-    { "position": [1360, 540], "size": [80, 400] }
+    { "position": [560, -140], "size": [80, 400] },
+    { "position": [1360, -140], "size": [80, 400] },
+    { "position": [560, 1220], "size": [80, 400] },
+    { "position": [1360, 1220], "size": [80, 400] }
   ],
   "units": [
     { "type": "drone", "team_id": 1, "position": [-260, 460] },

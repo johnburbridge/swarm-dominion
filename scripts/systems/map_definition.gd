@@ -106,9 +106,18 @@ static func _parse_vec2(value: Variant) -> Variant:
 ## entry: an obstacle that disappears opens a hole in the level and silently
 ## changes what the map plays like, which is worse than one that is the wrong
 ## size and visibly so.
+## An omitted size is a legitimate request for the default and passes quietly. A
+## present-but-malformed one warns: silently substituting a 64x64 nub for a wall
+## someone meant to author changes what the map plays like and what the
+## navigation mesh bakes, with nothing anywhere saying so.
 static func _parse_size(value: Variant) -> Vector2:
+	if value == null:
+		return DEFAULT_OBSTACLE_SIZE
 	var parsed: Variant = _parse_vec2(value)
-	return DEFAULT_OBSTACLE_SIZE if parsed == null else parsed
+	if parsed == null:
+		push_warning("MapDefinition: obstacle has a malformed size, using the default")
+		return DEFAULT_OBSTACLE_SIZE
+	return parsed
 
 
 ## Shared skip-and-warn scaffold for parsing a JSON array of entry

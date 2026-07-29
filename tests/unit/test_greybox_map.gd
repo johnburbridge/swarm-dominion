@@ -10,11 +10,50 @@ extends GutTest
 ## principle 1 makes symmetry a hard requirement of every competitive map, and
 ## an asymmetric map is a balance defect that is invisible by inspection once
 ## the layout grows past a handful of entities.
+##
+## What these checks CANNOT see. Each was found by an adversarial blind-spot
+## pass (.claude/skills/proving-guards-can-fail) and left open deliberately:
+##
+## * Mirror symmetry is checked about the vertical axis only. Vertical
+##   asymmetry, and the map's overall entity footprint inside its bounds, are
+##   unguarded — the layout could drift top-heavy and stay green.
+## * Nothing checks entities for overlap, or that the map is traversable.
+##   Obstacles sized to seal the two halves apart would pass.
+## * Degenerate control points pass: capture_radius 0 (uncapturable) and
+##   vp_weight 0 or negative both satisfy the distribution test.
+## * PRD 2.6 makes capture *time* vary by strategic value. The data model has no
+##   such field, so "central point is higher-value" is asserted through
+##   capture_radius, which is a zone size and not the same thing.
+## * The centre point's exact vp_weight is unpinned (the test only asks for
+##   > 1) because nothing consumes vp_weight until M7 wires capture.
+##
+## Verified as CLOSED by mutation, so do not assume they are still free: a
+## malformed obstacle size, both spawns stacked on the mirror axis, a mirrored
+## pair with differing size/radius/weight/type, and the map scene repointed at
+## a different definition file.
 
 const GREYBOX_PATH: String = "res://data/map_definitions/greybox_arena.json"
+const MAIN_SCENE_PATH: String = "res://scenes/main/main.tscn"
 const MIRRORED_CATEGORIES: Array[String] = [
 	"spawn_points", "biomass_nodes", "control_points", "units", "obstacles"
 ]
+
+## Fields that must be IDENTICAL between a mirrored pair. Position alone is not
+## symmetry — verified by mutation: resizing one choke-point wall from 80x400 to
+## 1600x40 left the whole file green while one team faced a pillar and the other
+## a map-spanning wall. team_id is absent deliberately: it must swap, not match,
+## which test_mirroring_swaps_the_two_teams covers.
+const MIRRORED_ATTRIBUTES: Dictionary = {
+	"obstacles": ["size"],
+	"control_points": ["capture_radius", "vp_weight"],
+	"units": ["type"],
+}
+
+## Floor on how far apart the two bases sit. Appendix A #2 wants 30-60s of
+## setup; this is not that number — it is a guard against a map that starts both
+## armies on top of each other. At the Drone's 150 px/s this is ~13s of travel,
+## so the real Appendix A figure is still owed to playtesting.
+const MIN_SPAWN_SEPARATION: float = 1920.0
 
 
 func _def() -> MapDefinition:
@@ -39,11 +78,14 @@ func _key(pos: Vector2) -> String:
 	return "%d,%d" % [roundi(pos.x), roundi(pos.y)]
 
 
-func _keys(entries: Array, center_x: float, mirrored: bool) -> Array:
+func _keys(entries: Array, category: String, center_x: float, mirrored: bool) -> Array:
 	var keys: Array = []
 	for entry in entries:
 		var pos: Vector2 = entry["position"]
-		keys.append(_key(_mirror(pos, center_x) if mirrored else pos))
+		var parts: Array = [_key(_mirror(pos, center_x) if mirrored else pos)]
+		for attribute in MIRRORED_ATTRIBUTES.get(category, []):
+			parts.append("%s=%s" % [attribute, entry[attribute]])
+		keys.append("|".join(parts))
 	keys.sort()
 	return keys
 
@@ -73,8 +115,8 @@ func test_layout_is_mirror_symmetric_about_the_vertical_centre() -> void:
 		var entries: Array = def.get(category)
 		assert_false(entries.is_empty(), "%s is populated" % category)
 		assert_eq(
-			_keys(entries, center_x, true),
-			_keys(entries, center_x, false),
+			_keys(entries, category, center_x, true),
+			_keys(entries, category, center_x, false),
 			"%s mirrors about x=%d" % [category, roundi(center_x)]
 		)
 
@@ -97,6 +139,40 @@ func test_mirroring_swaps_the_two_teams() -> void:
 		original.sort()
 		reflected.sort()
 		assert_eq(reflected, original, "%s reflect onto the opposing team" % category)
+
+
+func test_the_game_loads_the_map_this_file_guards() -> void:
+	# Every other assertion here is worth nothing if the shipped scene reads a
+	# different file. Verified by mutation: repointing the map scene's
+	# definition_path at test_arena.json left this entire file green.
+	var main: Node = (load(MAIN_SCENE_PATH) as PackedScene).instantiate()
+	autofree(main)
+	var maps: Array = []
+	for child in main.get_children():
+		if child is GameMap:
+			maps.append(child)
+	assert_eq(maps.size(), 1, "main scene instances exactly one map")
+	assert_eq(maps[0].definition_path, GREYBOX_PATH, "and it reads the guarded definition")
+
+
+func test_spawns_sit_apart_and_off_the_mirror_axis() -> void:
+	# Two purposes. Appendix A #2 wants the bases far enough apart to allow
+	# setup; and a point ON the mirror axis is its own reflection, so without
+	# this the symmetry test accepts both Mothers stacked at map centre —
+	# verified by mutation, it passed green.
+	var def := _def()
+	var center_x := _center_x(def)
+	var positions: Array = []
+	for spawn in def.spawn_points:
+		var pos: Vector2 = spawn["position"]
+		assert_ne(roundi(pos.x), roundi(center_x), "spawn at %s is off the mirror axis" % _key(pos))
+		positions.append(pos)
+	assert_eq(positions.size(), 2, "exactly two spawns to compare")
+	assert_gt(
+		positions[0].distance_to(positions[1]),
+		MIN_SPAWN_SEPARATION,
+		"bases are at least %d apart" % roundi(MIN_SPAWN_SEPARATION)
+	)
 
 
 func test_both_teams_get_a_spawn() -> void:

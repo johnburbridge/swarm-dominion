@@ -130,6 +130,7 @@ func test_obstacle_with_malformed_size_falls_back_to_default() -> void:
 	)
 	assert_eq(def.obstacles.size(), 1, "obstacle retained")
 	assert_eq(def.obstacles[0]["size"], MapDefinition.DEFAULT_OBSTACLE_SIZE, "default size")
+	assert_engine_error(1, "expected warning for the malformed size")
 
 
 func test_obstacle_without_position_is_skipped() -> void:

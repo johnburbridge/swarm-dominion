@@ -69,28 +69,34 @@ func _manifest_bindings(text: String) -> Array:
 
 ## Human-readable key for one bound event, matching the manifest's notation.
 func _binding_label(event: InputEvent) -> String:
+	var base := ""
 	if event is InputEventKey:
-		var key_event := event as InputEventKey
-		var parts: Array = []
-		if key_event.shift_pressed:
-			parts.append("Shift")
-		if key_event.ctrl_pressed:
-			parts.append("Ctrl")
-		if key_event.alt_pressed:
-			parts.append("Alt")
-		if key_event.meta_pressed:
-			parts.append("Meta")
-		parts.append(OS.get_keycode_string(key_event.keycode))
-		return "+".join(parts)
-	if event is InputEventMouseButton:
+		base = OS.get_keycode_string((event as InputEventKey).keycode)
+	elif event is InputEventMouseButton:
 		match (event as InputEventMouseButton).button_index:
 			MOUSE_BUTTON_LEFT:
-				return "MouseLeft"
+				base = "MouseLeft"
 			MOUSE_BUTTON_RIGHT:
-				return "MouseRight"
+				base = "MouseRight"
 			MOUSE_BUTTON_MIDDLE:
-				return "MouseMiddle"
-	return "Unknown"
+				base = "MouseMiddle"
+	if base.is_empty():
+		return "Unknown"
+	# Modifiers apply to mouse bindings too. Reading them only off key events meant
+	# Shift+RightClick and plain RightClick produced the same label, so the key-drift
+	# check could not see a modifier being added to a mouse binding.
+	var parts: Array = []
+	if event.is_class("InputEventWithModifiers"):
+		if event.shift_pressed:
+			parts.append("Shift")
+		if event.ctrl_pressed:
+			parts.append("Ctrl")
+		if event.alt_pressed:
+			parts.append("Alt")
+		if event.meta_pressed:
+			parts.append("Meta")
+	parts.append(base)
+	return "+".join(parts)
 
 
 ## "name:key" for every declared action, as the manifest should spell them.
@@ -128,8 +134,6 @@ func _gd_files(dir_path: String) -> Array:
 ## behaviour (Escape pauses the game) yet are excluded from the manifest as defaults.
 ## Without this check the ui_ exemption is a hole rather than a convenience.
 func _actions_used_in_code() -> Array:
-	var regex := RegEx.new()
-	regex.compile('is_action[a-z_]*\\("(?<action>[a-z_]+)"')
 	var actions: Array = []
 	for path in _gd_files("res://scripts"):
 		var file := FileAccess.open(path, FileAccess.READ)
@@ -137,7 +141,43 @@ func _actions_used_in_code() -> Array:
 			continue
 		var source := file.get_as_text()
 		file.close()
-		for m in regex.search_all(source):
+		for name in _actions_in_source(source):
+			if not actions.has(name):
+				actions.append(name)
+	actions.sort()
+	return actions
+
+
+## Strips line comments so a KEY_* or action name discussed in prose is not mistaken
+## for a call site. Naive about "#" inside string literals; none exist in scripts/.
+func _without_comments(source: String) -> String:
+	var kept: Array = []
+	for line in source.split("\n"):
+		var hash_at := str(line).find("#")
+		kept.append(line if hash_at < 0 else str(line).substr(0, hash_at))
+	return "\n".join(kept)
+
+
+## Action names read by `source`. Covers the whole family of action-reading APIs, not
+## just is_action*: Input.get_vector() is how WASD panning gets written, and it would
+## otherwise go live while the doc still said the camera actions were unimplemented.
+## Tolerates newlines inside the argument list because gdformat reflows long calls,
+## which would otherwise drop a call site from the scan with no semantic change at all.
+## That tolerance comes from the [^)] character class, not from a (?s) flag — (?s) only
+## affects ".", which this pattern never uses.
+func _actions_in_source(source: String) -> Array:
+	var callers := RegEx.new()
+	callers.compile(
+		(
+			"(?:is_action[a-z_]*|get_vector|get_axis|get_action_strength"
+			+ "|get_action_raw_strength|action_press|action_release)\\s*\\(([^)]*)\\)"
+		)
+	)
+	var literals := RegEx.new()
+	literals.compile('"(?<action>[a-z][a-z0-9_]*)"')
+	var actions: Array = []
+	for call in callers.search_all(_without_comments(source)):
+		for m in literals.search_all(call.get_string(1)):
 			var name := m.get_string("action")
 			if not actions.has(name):
 				actions.append(name)
@@ -153,14 +193,27 @@ func _hardcoded_keys() -> Array:
 	var source := file.get_as_text()
 	file.close()
 	var regex := RegEx.new()
-	regex.compile("KEY_(?<key>[A-Z0-9]+)")
+	regex.compile("KEY_(?<key>[A-Z0-9_]+)")
 	var keys: Array = []
-	for m in regex.search_all(source):
-		var key := m.get_string("key")
-		if not keys.has(key):
+	for m in regex.search_all(_without_comments(source)):
+		# Round-trip through the engine so this check and _binding_label share one
+		# notation ("Escape", not "ESCAPE"). A constant that is not a keycode at all
+		# (KEY_MASK_SHIFT, or an unrelated KEY_-prefixed name) resolves to 0 and drops.
+		var keycode := OS.find_keycode_from_string(m.get_string("key").to_lower().capitalize())
+		var key := OS.get_keycode_string(keycode)
+		if not key.is_empty() and not keys.has(key):
 			keys.append(key)
 	keys.sort()
 	return keys
+
+
+## The doc minus its "Declared but not implemented" section. That section names keys
+## precisely to say they do nothing, so a bare substring search over the whole file
+## would let it satisfy a check asserting those keys ARE handled.
+func _live_doc_text() -> String:
+	var text := _doc_text()
+	var cut := text.find("## Declared but not implemented")
+	return text if cut < 0 else text.substr(0, cut)
 
 
 func test_controls_doc_exists() -> void:
@@ -231,7 +284,7 @@ func test_every_binding_has_a_readable_key_label() -> void:
 func test_keys_handled_outside_the_input_map_are_documented() -> void:
 	# main.gd matches some keys as raw KEY_* constants, so they never appear in the
 	# input map and the action checks above cannot see them at all.
-	var body := _doc_text()
+	var body := _live_doc_text()
 	var keys := _hardcoded_keys()
 	# Without this the scan finding nothing would look like the doc being complete.
 	assert_false(keys.is_empty(), "the KEY_* scan of main.gd should find something to check")
@@ -256,3 +309,90 @@ func test_every_declared_action_is_mentioned_in_the_body() -> void:
 			body.contains("`%s`" % action),
 			"docs/CONTROLS.md should mention the `%s` action outside the manifest" % action
 		)
+
+
+# --- hardening (SPI-1459) ---
+
+
+## Raw keys listed in the doc's second manifest comment.
+func _manifest_raw_keys(text: String) -> Array:
+	var regex := RegEx.new()
+	regex.compile("<!--\\s*raw-keys:\\s*(?<list>[^>]*?)\\s*-->")
+	var found := regex.search(text)
+	if found == null:
+		return []
+	var keys: Array = []
+	for entry in found.get_string("list").split(","):
+		var trimmed := entry.strip_edges()
+		if not trimmed.is_empty():
+			keys.append(trimmed)
+	keys.sort()
+	return keys
+
+
+func test_mouse_bindings_record_their_modifiers() -> void:
+	# _binding_label built modifier prefixes only for key events, so rebinding
+	# `command` from right-click to Shift+right-click produced a byte-identical
+	# manifest — invisible to the very check meant to catch rebinds.
+	var shift_right := InputEventMouseButton.new()
+	shift_right.button_index = MOUSE_BUTTON_RIGHT
+	shift_right.shift_pressed = true
+	var plain_right := InputEventMouseButton.new()
+	plain_right.button_index = MOUSE_BUTTON_RIGHT
+	assert_ne(
+		_binding_label(shift_right),
+		_binding_label(plain_right),
+		"a modifier on a mouse binding must change its label"
+	)
+
+
+func test_code_scan_sees_actions_read_without_is_action() -> void:
+	# Input.get_vector() is the idiomatic way to implement WASD panning and contains
+	# no "is_action", so the scan would miss the moment camera_* went live.
+	var source := 'var dir := Input.get_vector("camera_left", "camera_right", "cam_up", "cam_down")'
+	assert_true(
+		_actions_in_source(source).has("cam_up"),
+		"the scan should see actions read through Input.get_vector"
+	)
+
+
+func test_code_scan_survives_a_reflowed_call() -> void:
+	# gdformat reflows long calls; the old regex needed (" on one line, so formatting
+	# alone could drop a call site from the scan with no semantic change.
+	var source := 'if event.is_action_pressed(\n\t\t"reflowed_action", false, true\n\t):'
+	assert_true(
+		_actions_in_source(source).has("reflowed_action"),
+		"a call split across lines should still be scanned"
+	)
+
+
+func test_code_scan_ignores_commented_out_mentions() -> void:
+	var source := '# don\'t use is_action_pressed("ghost_action") here\nvar x := 1'
+	assert_false(
+		_actions_in_source(source).has("ghost_action"),
+		"a mention inside a comment should not be treated as a call site"
+	)
+
+
+func test_raw_key_manifest_matches_the_keys_main_actually_handles() -> void:
+	# Two-way, so deleting the temporary KEY_B debug spawn fails the build instead of
+	# leaving the doc promising a hotkey nothing handles.
+	var manifest := _manifest_raw_keys(_doc_text())
+	assert_false(manifest.is_empty(), "docs/CONTROLS.md should carry a <!-- raw-keys: ... --> list")
+	assert_eq(
+		manifest,
+		_hardcoded_keys(),
+		"the raw-keys manifest must match the KEY_* constants main.gd handles, both ways"
+	)
+
+
+func test_declared_but_unimplemented_section_cannot_satisfy_the_key_check() -> void:
+	# <kbd>W</kbd>, <kbd>S</kbd> and <kbd>D</kbd> already appear there saying they do
+	# nothing. Without scoping, adding raw KEY_W handling would be "documented" by the
+	# sentence stating W is unimplemented.
+	var live := _live_doc_text()
+	assert_false(
+		live.contains("Declared but not implemented"),
+		"the key checks should read only the part of the doc describing live controls"
+	)
+	assert_true(live.contains("<kbd>B</kbd>"), "…while still covering the real control tables")

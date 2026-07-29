@@ -67,3 +67,58 @@ func test_populate_null_definition_returns_empty() -> void:
 	assert_eq(loaded["mothers"].size(), 0, "no mothers")
 	assert_eq(loaded["biomass_nodes"].size(), 0, "no biomass nodes")
 	assert_engine_error(1, "expected warning for null definition")
+
+
+func test_populate_builds_obstacle_bodies() -> void:
+	var loaded := MapLoader.populate(
+		_def({"obstacles": [{"position": [560, 540], "size": [80, 400]}]}), _parent
+	)
+	assert_eq(loaded["obstacles"].size(), 1, "one obstacle")
+	var body: StaticBody2D = loaded["obstacles"][0]
+	assert_eq(body.position, Vector2(560, 540), "obstacle position")
+	assert_true(body.is_in_group(MapLoader.OBSTACLE_GROUP), "in obstacles group")
+	var shape := body.get_child(0) as CollisionShape2D
+	assert_eq((shape.shape as RectangleShape2D).size, Vector2(80, 400), "rect size from the data")
+
+
+func test_obstacle_blocks_units_but_is_not_pickable_as_one() -> void:
+	# Obstacles sit on their own layer so click-to-select point queries against
+	# the unit layer never return them, while units still physically collide.
+	var loaded := MapLoader.populate(
+		_def({"obstacles": [{"position": [0, 0], "size": [10, 10]}]}), _parent
+	)
+	var body: StaticBody2D = loaded["obstacles"][0]
+	assert_eq(body.collision_layer, MapLoader.OBSTACLE_LAYER, "on the obstacle layer")
+	# Literal 1 rather than a symbol: main.gd declares UNIT_COLLISION_MASK but has
+	# no class_name, so it is not referenceable from here.
+	assert_eq(body.collision_layer & 1, 0, "not on the unit layer main.gd point-queries")
+	assert_eq(body.collision_mask, 0, "obstacles are static and detect nothing themselves")
+	# Layers 1-3 are units / unit attack range / biomass nodes, named in
+	# project.godot's [layer_names]. The obstacle layer was 2 until SPI-1444's
+	# review found it double-booked with unit_base.gd's attack-detection Area2D,
+	# which made every wall a valid auto-attack target. Nothing about "pick the
+	# next free layer" is self-checking, so pin the disjointness.
+	assert_eq(MapLoader.OBSTACLE_LAYER & 0b0111, 0, "obstacle layer is disjoint from layers 1-3")
+
+
+func test_units_collide_with_obstacles_as_well_as_each_other() -> void:
+	# A wall on a layer no unit masks is scenery, not an obstacle. Both unit
+	# scenes must mask the unit layer (1) and MapLoader.OBSTACLE_LAYER.
+	for path in ["res://scenes/units/drone.tscn", "res://scenes/units/mother.tscn"]:
+		var unit := (load(path) as PackedScene).instantiate() as CharacterBody2D
+		autofree(unit)
+		assert_eq(unit.collision_layer, 1, "%s is on the unit layer" % path)
+		assert_eq(unit.collision_mask & 1, 1, "%s collides with other units" % path)
+		assert_eq(
+			unit.collision_mask & MapLoader.OBSTACLE_LAYER,
+			MapLoader.OBSTACLE_LAYER,
+			"%s collides with obstacles" % path
+		)
+		# MOTION_MODE_FLOATING. The platformer default classifies a wall's top
+		# face as floor and its bottom as ceiling, which made mirrored diagonal
+		# approaches to a symmetric pair of walls diverge by ~3px.
+		assert_eq(
+			unit.motion_mode,
+			CharacterBody2D.MOTION_MODE_FLOATING,
+			"%s uses floating motion, not the grounded platformer default" % path
+		)

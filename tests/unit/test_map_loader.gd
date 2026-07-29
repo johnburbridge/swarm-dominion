@@ -67,3 +67,29 @@ func test_populate_null_definition_returns_empty() -> void:
 	assert_eq(loaded["mothers"].size(), 0, "no mothers")
 	assert_eq(loaded["biomass_nodes"].size(), 0, "no biomass nodes")
 	assert_engine_error(1, "expected warning for null definition")
+
+
+func test_populate_builds_obstacle_bodies() -> void:
+	var loaded := MapLoader.populate(
+		_def({"obstacles": [{"position": [560, 540], "size": [80, 400]}]}), _parent
+	)
+	assert_eq(loaded["obstacles"].size(), 1, "one obstacle")
+	var body: StaticBody2D = loaded["obstacles"][0]
+	assert_eq(body.position, Vector2(560, 540), "obstacle position")
+	assert_true(body.is_in_group(MapLoader.OBSTACLE_GROUP), "in obstacles group")
+	var shape := body.get_child(0) as CollisionShape2D
+	assert_eq((shape.shape as RectangleShape2D).size, Vector2(80, 400), "rect size from the data")
+
+
+func test_obstacle_blocks_units_but_is_not_pickable_as_one() -> void:
+	# Obstacles sit on their own layer so click-to-select point queries against
+	# the unit layer never return them, while units still physically collide.
+	var loaded := MapLoader.populate(
+		_def({"obstacles": [{"position": [0, 0], "size": [10, 10]}]}), _parent
+	)
+	var body: StaticBody2D = loaded["obstacles"][0]
+	assert_eq(body.collision_layer, MapLoader.OBSTACLE_LAYER, "on the obstacle layer")
+	# Literal 1 rather than a symbol: main.gd declares UNIT_COLLISION_MASK but has
+	# no class_name, so it is not referenceable from here.
+	assert_eq(body.collision_layer & 1, 0, "not on the unit layer main.gd point-queries")
+	assert_eq(body.collision_mask, 0, "obstacles are static and detect nothing themselves")

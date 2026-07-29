@@ -107,3 +107,32 @@ func test_from_file_non_object_root_returns_null() -> void:
 	assert_null(def, "non-object JSON root returns null")
 	assert_engine_error(1, "expected warning for non-object root")
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
+
+
+func test_obstacle_parses_position_and_size() -> void:
+	var def := MapDefinition.from_dict({"obstacles": [{"position": [560, 540], "size": [80, 400]}]})
+	assert_eq(def.obstacles.size(), 1, "one obstacle")
+	assert_eq(def.obstacles[0]["position"], Vector2(560, 540), "obstacle position is Vector2")
+	assert_eq(def.obstacles[0]["size"], Vector2(80, 400), "obstacle size is Vector2")
+
+
+func test_obstacle_defaults_size_when_missing() -> void:
+	var def := MapDefinition.from_dict({"obstacles": [{"position": [10, 20]}]})
+	assert_eq(def.obstacles[0]["size"], MapDefinition.DEFAULT_OBSTACLE_SIZE, "default size")
+
+
+func test_obstacle_with_malformed_size_falls_back_to_default() -> void:
+	# A three-element size is a typo, not an intent to make a 3D box. Falling
+	# back keeps the rest of the map loadable rather than dropping the obstacle
+	# and silently opening a hole in the level.
+	var def := MapDefinition.from_dict(
+		{"obstacles": [{"position": [10, 20], "size": [80, 400, 12]}]}
+	)
+	assert_eq(def.obstacles.size(), 1, "obstacle retained")
+	assert_eq(def.obstacles[0]["size"], MapDefinition.DEFAULT_OBSTACLE_SIZE, "default size")
+
+
+func test_obstacle_without_position_is_skipped() -> void:
+	var def := MapDefinition.from_dict({"obstacles": [{"size": [80, 400]}]})
+	assert_eq(def.obstacles.size(), 0, "obstacle without a position skipped")
+	assert_engine_error(1, "expected warning for the skipped obstacle")

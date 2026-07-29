@@ -5,6 +5,7 @@ class_name MapDefinition extends RefCounted
 
 const DEFAULT_CAPTURE_RADIUS: float = 96.0
 const DEFAULT_VP_WEIGHT: int = 1
+const DEFAULT_OBSTACLE_SIZE: Vector2 = Vector2(64, 64)
 
 var map_name: String = ""
 var bounds: Rect2 = Rect2()
@@ -12,6 +13,7 @@ var spawn_points: Array[Dictionary] = []
 var biomass_nodes: Array[Dictionary] = []
 var control_points: Array[Dictionary] = []
 var units: Array[Dictionary] = []
+var obstacles: Array[Dictionary] = []
 
 
 ## Loads and parses a definition file. Returns null on a missing file,
@@ -61,6 +63,12 @@ static func from_dict(data: Dictionary) -> MapDefinition:
 				"vp_weight": int(entry.get("vp_weight", DEFAULT_VP_WEIGHT)),
 			}
 	)
+	def.obstacles = _parse_entries(
+		data.get("obstacles", []),
+		"obstacle",
+		func(entry: Dictionary, pos: Variant) -> Dictionary:
+			return {"position": pos, "size": _parse_size(entry.get("size"))}
+	)
 	def.units = _parse_entries(
 		data.get("units", []),
 		"unit",
@@ -91,6 +99,16 @@ static func _parse_vec2(value: Variant) -> Variant:
 	if typeof(value) != TYPE_ARRAY or value.size() != 2:
 		return null
 	return Vector2(float(value[0]), float(value[1]))
+
+
+## Obstacle extents, falling back to DEFAULT_OBSTACLE_SIZE for a missing or
+## malformed value. Deliberately unlike position, where a bad value drops the
+## entry: an obstacle that disappears opens a hole in the level and silently
+## changes what the map plays like, which is worse than one that is the wrong
+## size and visibly so.
+static func _parse_size(value: Variant) -> Vector2:
+	var parsed: Variant = _parse_vec2(value)
+	return DEFAULT_OBSTACLE_SIZE if parsed == null else parsed
 
 
 ## Shared skip-and-warn scaffold for parsing a JSON array of entry

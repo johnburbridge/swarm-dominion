@@ -88,6 +88,13 @@ camera_right={
 ]
 }
 
+[layer_names]
+
+2d_physics/layer_1="units"
+2d_physics/layer_2="unit_attack_range"
+2d_physics/layer_3="biomass_nodes"
+2d_physics/layer_4="obstacles"
+
 [rendering]
 
 renderer/rendering_method="gl_compatibility"

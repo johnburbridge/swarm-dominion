@@ -1,0 +1,39 @@
+{
+  "name": "Greybox Arena",
+  "bounds": { "x": -960, "y": -540, "width": 3840, "height": 2160 },
+  "spawn_points": [
+    { "team_id": 1, "position": [-160, 540] },
+    { "team_id": 2, "position": [2080, 540] }
+  ],
+  "biomass_nodes": [
+    { "position": [-360, 300] },
+    { "position": [-360, 780] },
+    { "position": [2280, 300] },
+    { "position": [2280, 780] },
+    { "position": [960, 180] },
+    { "position": [960, 900] }
+  ],
+  "control_points": [
+    { "id": "center", "position": [960, 540], "capture_radius": 160, "vp_weight": 3 },
+    { "id": "nw", "position": [280, 60], "capture_radius": 96, "vp_weight": 1 },
+    { "id": "ne", "position": [1640, 60], "capture_radius": 96, "vp_weight": 1 },
+    { "id": "sw", "position": [280, 1020], "capture_radius": 96, "vp_weight": 1 },
+    { "id": "se", "position": [1640, 1020], "capture_radius": 96, "vp_weight": 1 }
+  ],
+  "obstacles": [
+    { "position": [560, -140], "size": [80, 400] },
+    { "position": [1360, -140], "size": [80, 400] },
+    { "position": [560, 1220], "size": [80, 400] },
+    { "position": [1360, 1220], "size": [80, 400] }
+  ],
+  "units": [
+    { "type": "drone", "team_id": 1, "position": [-260, 460] },
+    { "type": "drone", "team_id": 1, "position": [-260, 620] },
+    { "type": "drone", "team_id": 1, "position": [-60, 460] },
+    { "type": "drone", "team_id": 1, "position": [-60, 620] },
+    { "type": "drone", "team_id": 2, "position": [2180, 460] },
+    { "type": "drone", "team_id": 2, "position": [2180, 620] },
+    { "type": "drone", "team_id": 2, "position": [1980, 460] },
+    { "type": "drone", "team_id": 2, "position": [1980, 620] }
+  ]
+}
